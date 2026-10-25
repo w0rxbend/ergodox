@@ -26,7 +26,10 @@ renders: ## Regenerate PNG previews in renders/ (needs exports)
 		$(EXPORTS)/ergodox_left_top.stl:-125,0,0 $(EXPORTS)/ergodox_right_top.stl:125,0,0
 	$(PYTHON) tools/zrender.py $(RENDERS)/right_top_underside.png 1000 140 15 $(EXPORTS)/ergodox_right_top.stl
 	$(PYTHON) tools/zrender.py $(RENDERS)/right_bottom_tray.png 1000 -45 15 $(EXPORTS)/ergodox_right_bottom.stl
+	$(PYTHON) tools/zrender.py $(RENDERS)/right_with_legs.png 1200 -60 -60 \
+		$(EXPORTS)/ergodox_right_assembly_with_legs.stl
 	$(PYTHON) tools/section.py $(EXPORTS) $(RENDERS)/section.png
+	$(PYTHON) tools/leg_section.py $(EXPORTS) $(RENDERS)/leg_section.png
 	$(PYTHON) tools/overlay.py $(PHOTO) $(RENDERS)/overlay_on_photo.png
 
 clean: ## Remove Python caches

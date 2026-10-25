@@ -14,10 +14,10 @@ your own keyboard before ordering aluminium parts.
 
 DXF layers: `OUTLINE`, `WALL_INNER`, `KEY_WELL`, `SWITCH_CUTOUTS`, `SCREWS`, `FEATURES` (jacks, LEDs, reset).
 
-## 2. Tent/tilt leg thread
+## 2. Tent/tilt legs
 
-ZSA doesn't publish the leg thread size. The model uses an M4 tap drill (`LEG_TAP_D = 3.3`) at
-Z = 11 mm on 3 legs. Measure your leg screw and change `LEG_TAP_D` if needed.
+The model reuses the stock legs and M3 thumbscrews. Before cutting, check the 3 items listed in
+[legs.md](legs.md#check-before-machining): the tooth count on the leg hub, the thread length and the leg positions.
 
 ## 3. Jack openings
 
@@ -36,4 +36,4 @@ Build up the keyboard in the printed case:
 - the switches should click into the plate,
 - the screws should line up with the PCB holes,
 - the cables should plug in,
-- the legs should thread in.
+- the legs should screw in and click through their positions on the toothed bosses (tap M3 in the print, or use M3 heat-set inserts).

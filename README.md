@@ -21,18 +21,20 @@ STL files for a 3D-printed test fit, and a 1:1 DXF drawing for checking your PCB
 - **Matches the EZ:**
   - TRRS openings on both halves.
   - USB, 3 LED windows and the reset hole on the right half only.
-  - Tapped holes for the tent/tilt legs.
+  - Mounts for the **stock EZ tent/tilt legs and M3 thumbscrews**: a tapped M3 hole with a toothed
+    Ø10 detent boss, so the legs keep their click-stop positions. See [docs/legs.md](docs/legs.md).
 - **Designed for milling.** Internal corners are R ≥ 1 mm, and the jack notches open towards the
-  parting plane. The top takes 3 setups and the bottom 2.
+  parting plane. The top takes 2 setups plus a side setup for the leg bosses; the bottom takes 2 setups.
 - **Fully parametric.** Every dimension is a named constant at the top of
   [`cad/ergodox_case.py`](cad/ergodox_case.py).
 
 | | |
 |---|---|
-| Size per half | 193.2 × 166.5 × 17.6 mm |
+| Size per half | 194.4 × 166.5 × 17.6 mm (including the leg bosses) |
 | Mass per half (6061-T6) | ≈ 350 g (top 142 g + bottom 209 g) |
 | Fasteners per half | 7 × M2.5×14 + 1 × M2.5×12 countersunk (ISO 10642) |
 | Feet | 4 × Ø10 mm rubber bumpers in 0.6 mm recesses |
+| Tent/tilt legs | 3 stock EZ legs and M3 thumbscrews per half; the brackets are not needed |
 
 ## Download
 
@@ -56,7 +58,7 @@ make renders    # refreshes renders/*.png from the exports
 make help       # lists all targets
 ```
 
-`make model` prints a build report: screw-to-switch clearances, tent-leg pad depths, and each part's
+`make model` prints a build report: screw-to-switch clearances, tent-leg wall checks, and each part's
 mass, size and geometry validity. It exits non-zero if any part is not a single valid solid.
 
 To use another interpreter, run `make PYTHON=/path/to/python model`.
@@ -78,6 +80,7 @@ exports/                 (git-ignored) generated STEP/STL/DXF
 | Document | Contents |
 |---|---|
 | [docs/design.md](docs/design.md) | Where each dimension comes from, the coordinate frame, the Z stack, part breakdown |
+| [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 detent boss, measurements, what to check |
 | [docs/fit-check.md](docs/fit-check.md) | What to measure on your keyboard before machining |
 | [docs/machining.md](docs/machining.md) | Bill of materials, setups, tooling, finishing |
 | [docs/sources.md](docs/sources.md) | References and prior art |
@@ -92,6 +95,12 @@ The model overlaid on a photo of a real EZ. Red is the outline, blue the key wel
 cutouts and magenta the holes:
 
 ![Overlay on photo](renders/overlay_on_photo.png)
+
+The stock tent legs, deployed, with a section through the outer leg mount:
+
+| Assembly preview | Leg mount section |
+|---|---|
+| ![](renders/right_with_legs.png) | ![](renders/leg_section.png) |
 
 The cross-sections show the PCB clamped between the top bosses and the bottom posts:
 

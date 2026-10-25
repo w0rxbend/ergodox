@@ -9,7 +9,8 @@
 | 7 | M2.5 × 14 countersunk screw, ISO 10642 / DIN 7991 | bezel and edge bosses, about 5.4 mm thread engagement |
 | 1 | M2.5 × 12 countersunk screw | centre boss under the plate; the hole is blind and leaves 1.1 mm of skin |
 | 4 | Rubber foot, Ø10 mm | recesses are Ø10.5 × 0.6 mm |
-| — | Stock EZ PCB, switches, keycaps, tent legs | |
+| 3 | Stock EZ legs with their spring M3 thumbscrews | brackets not needed ([legs.md](legs.md)) |
+| — | Stock EZ PCB, switches, keycaps | |
 
 ## Top shell: 3 setups
 
@@ -17,8 +18,10 @@
    (Ø2.05, 6 mm deep). The jack notches open towards the parting plane, so a vertical end mill cuts them in this setup.
 2. **Top up.** Mill the key well, then the switch cutouts through the plate. The cutouts are 14.0 mm square
    with R 0.5 corners and need a Ø1 mm tool. Set `DOGBONES = True` if the shop prefers dog-bones.
-   Then cut the LED holes (Ø1.8), the reset hole (Ø1.5), the top-edge fillet (R 1.5) and the parting chamfer.
-3. **Side ops.** Drill and tap the 3 tent-leg holes on a 4th axis or in a fixture.
+   Then cut the LED holes (Ø1.8), the reset hole (Ø1.5), the top-edge fillet (R 1.5), the parting chamfer
+   and the outer profile with the 3 Ø10 leg bosses.
+3. **Side ops (4th axis or right-angle head).** On each leg boss, cut the 36 radial V-teeth with a 90°
+   engraver, then drill Ø2.5 and tap M3, 5.2–6.0 mm deep. The thumb wall is at 25°.
 
 ## Bottom tray: 2 setups
 

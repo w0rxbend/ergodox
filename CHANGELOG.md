@@ -3,6 +3,25 @@
 This project uses [Semantic Versioning](https://semver.org/). Each `v*` tag publishes a GitHub release
 with STL and STEP archives.
 
+## [0.2.0] - 2026-10-26
+
+### Added
+
+- Mounts for the stock ErgoDox EZ tent/tilt legs and their M3 spring thumbscrews. Each mount is a
+  tapped M3 hole in a pad behind the wall, with a Ø10 boss on the outer face carrying 36 radial
+  detent teeth, so the stock brackets are not needed. See `docs/legs.md`.
+- Assembly preview with the stock legs (`ergodox_right_assembly_with_legs.step/.stl`).
+- The build fails if a leg boss or pad runs off its straight wall.
+- Leg section and assembly renders, plus caliper photos of the stock brackets and legs in `images/`.
+
+### Changed
+
+- Leg positions moved to match the stock EZ: y = 64 on both main walls, v = 0.56u on the thumb wall.
+
+### Removed
+
+- The M4 leg thread. The stock thumbscrews are M3, measured with a caliper.
+
 ## [0.1.0] - 2026-10-25
 
 ### Added

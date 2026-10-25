@@ -4,7 +4,7 @@ ErgoDox EZ replica case for CNC aluminium milling (build123d, parametric).
 
 Two parts per half:
   * TOP    - shell with integrated 1.5 mm switch plate in a recessed key well,
-             perimeter walls, TRRS/USB notches, PCB clamp bosses, tent-leg pads.
+             perimeter walls, TRRS/USB notches, PCB clamp bosses, tent-leg detent bosses.
   * BOTTOM - tray: floor + low walls + PCB support posts, countersunk M2.5 holes.
 
 Coordinate sources
@@ -28,7 +28,7 @@ import sys
 from build123d import (
     Align, Axis, Box, Circle, Cylinder, Face, Kind, Location, Mode, Plane, Pos,
     Rectangle, RectangleRounded, Rot, Sketch, Solid, Vector, chamfer, export_step,
-    export_stl, extrude, fillet, offset, Polyline, make_face, Compound,
+    export_stl, extrude, fillet, offset, Polyline, make_face, Compound, Sphere,
 )
 
 # --------------------------------------------------------------------------
@@ -81,11 +81,24 @@ TAP_DEPTH_PLATE = 3.9    # for bosses under the plate (leaves ~1.1 mm skin)
 BOSS_D = 6.5
 POST_D = 6.5
 
-# Tent / tilt leg mounting (EZ tilt kit). VERIFY thread on your legs.
-LEG_TAP_D = 3.3          # M4 tap drill
-LEG_DEPTH = 6.0
-LEG_Z = 11.0
+# Tent / tilt legs: reuses the stock EZ legs and their spring thumbscrews (M3). The stock
+# bracket is not used: the M3 thread is tapped into the wall and a pad behind it, and a
+# toothed boss on the outside of the wall replaces the bracket nut's detent face. The
+# leg hub's radial teeth mesh with it. See docs/legs.md.
+LEG_Z = 12.0             # thread axis; the Ø10 boss then spans Z 7.0-17.0 on the top part
+LEG_TAP_D = 2.5          # M3 tap drill
+LEG_DEPTH = 6.0          # max drill depth from the boss face
 LEG_PAD = (10.0, 6.0)    # pad (along wall, into case) behind the wall
+LEG_BOSS_D = 10.0        # detent boss on the outer wall face
+LEG_BOSS_H = 1.2         # boss height above the wall face (tooth tips)
+LEG_TEETH = 36           # radial detent teeth (stock: 10 deg steps) - count yours
+LEG_TOOTH_R0 = 2.2       # teeth run from this radius to the boss edge
+LEG_TOOTH_ANGLE = 90.0   # included angle of the V teeth
+# Reference geometry of the stock leg (assembly preview only)
+LEG_HUB_D = 10.4
+LEG_HUB_L = 7.5
+LEG_LEN = 47.0           # pivot to foot tip
+LEG_FOOT_D = 9.0
 
 # Rubber feet recesses
 FOOT_D = 10.5
@@ -146,8 +159,9 @@ LED_D = 1.8
 RESET = (190.9, 42.6)                   # right half only
 RESET_D = 1.5
 
-# Tent leg positions: (point on outline, outward normal angle deg, CAD frame later)
-LEG_MAIN_Y = 70.0
+# Tent leg positions, as on the stock EZ (measured from photos, ±2 mm)
+LEG_MAIN_Y = 64.0        # outer and inner main walls
+LEG_THUMB_V = 0.56       # along the thumb-cluster end wall, in key units
 
 # Feet (KiCad frame)
 FEET = [(68.0, 45.0), (198.0, 45.0), (198.0, 150.0), (45.0, 178.0)]
@@ -331,10 +345,16 @@ def leg_mounts():
         (P(CASE_X_IN, LEG_MAIN_Y), (-1.0, 0.0)),
     ]
     u = -0.5 * PITCH - THUMB_MARGIN
-    tx, ty = P(*thumb_pt(u / PITCH, 1.5))
+    tx, ty = P(*thumb_pt(u / PITCH, LEG_THUMB_V))
     a = math.radians(THUMB_ANGLE)
     legs.append(((tx, ty), (-math.cos(a), -math.sin(a))))
     return legs
+
+
+def _leg_frame(px, py, nx, ny, shape):
+    """Place a shape built in the wall-local frame (X = inward depth from the outer
+    face, Y = along the wall, Z = absolute) at a leg position."""
+    return Pos(px, py, 0) * Rot(0, 0, math.degrees(math.atan2(-ny, -nx))) * shape
 
 
 def _in_housing(x: float, y: float, margin: float) -> bool:
@@ -364,6 +384,62 @@ def leg_pad_depth(px, py, nx, ny) -> float:
             break
         depth += 0.25
     return depth
+
+
+def leg_hole_depth(px, py, nx, ny, well: list[Face]) -> float:
+    """Tap drill depth from the boss face: inside the pad, and stopped short of the key
+    well when the thread would pass just under the well floor."""
+    depth = LEG_BOSS_H + WALL + leg_pad_depth(px, py, nx, ny) - 0.5
+    if LEG_Z + 1.5 > Z_PLATE_TOP - 0.5:
+        d = 0.0
+        while d < depth and not any(f.is_inside(Vector(px - nx * d, py - ny * d)) for f in well):
+            d += 0.1
+        depth = min(depth, LEG_BOSS_H + d - 0.3)
+    return min(LEG_DEPTH, depth)
+
+
+def detent_boss() -> Solid:
+    """Toothed boss in a local frame: axis along +Z, wall face at Z = 0, tooth tips at
+    LEG_BOSS_H. V grooves with apexes on the axis, like the stock nut (Hirth-style)."""
+    from build123d import Polyline as _PL, loft
+    r1 = LEG_BOSS_D / 2
+    boss = Pos(0, 0, -WALL / 2) * Cylinder(r1, WALL / 2 + LEG_BOSS_H,
+                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
+    half = math.pi / LEG_TEETH                               # half pitch angle
+    k = math.tan(half) / math.tan(math.radians(LEG_TOOTH_ANGLE) / 2)   # depth / radius
+    grooves = []
+    for i in range(LEG_TEETH):
+        secs = []
+        for r in (LEG_TOOTH_R0, r1 + 0.3):
+            w = r * math.tan(half)
+            pts = [(r, -w, LEG_BOSS_H + 0.01), (r, w, LEG_BOSS_H + 0.01), (r, 0, LEG_BOSS_H - r * k)]
+            secs.append(make_face(_PL(*pts, close=True)))
+        grooves.append(Rot(0, 0, i * 360 / LEG_TEETH) * loft(secs))
+    boss -= grooves
+    # flat land inside the teeth at root depth, so the hub seats on the teeth only
+    root = LEG_TOOTH_R0 * k
+    boss -= Pos(0, 0, LEG_BOSS_H - root) * Cylinder(LEG_TOOTH_R0, 1,
+                                                    align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return boss
+
+
+def leg_check():
+    """Each boss and pad must sit on a straight wall, inside the top part."""
+    if LEG_Z - LEG_BOSS_D / 2 < Z_SPLIT - 1e-6 or LEG_Z + LEG_BOSS_D / 2 > Z_TOP:
+        sys.exit("tent-leg boss does not fit between the parting plane and the top")
+    outline = outline_face()
+    well = well_face()
+    half = max(LEG_PAD[0], LEG_BOSS_D) / 2 + 0.5
+    for (px, py), (nx, ny) in leg_mounts():
+        tx, ty = -ny, nx
+        for t in (-half, half):
+            qx, qy = px + tx * t, py + ty * t
+            on_wall = (outline.is_inside(Vector(qx - nx * 0.05, qy - ny * 0.05)) and
+                       not outline.is_inside(Vector(qx + nx * 0.05, qy + ny * 0.05)))
+            if not on_wall:
+                sys.exit(f"tent leg at ({px + OX:.1f},{-py + OY:.1f}) runs off its straight wall")
+        print(f"  tent leg at ({px + OX:6.1f},{-py + OY:6.1f}): pad depth {leg_pad_depth(px, py, nx, ny):4.2f}"
+              f"  M3 drill depth {leg_hole_depth(px, py, nx, ny, well):4.2f} mm from boss face")
 
 
 def build_top(right: bool) -> Solid:
@@ -405,19 +481,20 @@ def build_top(right: bool) -> Solid:
         body -= Pos(cx, cy, Z_PCB_TOP - 0.01) * Cylinder(TAP_D / 2, depth,
                                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
 
-    # tent leg pads + tapped holes (horizontal)
+    # tent legs: pad behind the wall, toothed detent boss outside, tapped M3 hole
+    boss = detent_boss()
     for (px, py), (nx, ny) in leg_mounts():
-        ang = math.degrees(math.atan2(ny, nx))
         pad_d = leg_pad_depth(px, py, nx, ny)
-        pad_len = WALL + pad_d
-        pad = (Pos(px, py, Z_PCB_TOP + 0.4) * Rot(0, 0, ang) *
-               Box(pad_len, LEG_PAD[0], Z_PLATE_BOT - Z_PCB_TOP - 0.4,
-                   align=(Align.MAX, Align.CENTER, Align.MIN)))
-        body += pad & prism(outline, Z_SPLIT, Z_TOP)
-        hole = (Pos(px + nx, py + ny, LEG_Z) * Rot(0, 0, ang) * Rot(0, -90, 0) *
-                Cylinder(LEG_TAP_D / 2, min(LEG_DEPTH, WALL + pad_d - 0.5) + 1,
-                         align=(Align.CENTER, Align.CENTER, Align.MIN)))
-        body -= hole
+        pad = Pos(0, 0, Z_PCB_TOP + 0.4) * Box(WALL + pad_d, LEG_PAD[0], Z_POCKET_CEIL - Z_PCB_TOP - 0.4,
+                                               align=(Align.MIN, Align.CENTER, Align.MIN))
+        pad = _leg_frame(px, py, nx, ny, pad) & prism(outline, Z_SPLIT, Z_TOP)
+        for wf in well:
+            pad -= prism(wf, Z_PLATE_TOP, Z_TOP + 1)
+        body += pad
+        body += _leg_frame(px, py, nx, ny, Pos(0, 0, LEG_Z) * Rot(0, -90, 0) * boss)
+        depth = leg_hole_depth(px, py, nx, ny, well)
+        body -= _leg_frame(px, py, nx, ny, Pos(-LEG_BOSS_H - 0.01, 0, LEG_Z) * Rot(0, 90, 0) * Cylinder(
+            LEG_TAP_D / 2, depth + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN)))
 
     # jack notches in the back wall (open towards the parting plane)
     yb = P(0, CASE_Y_TOP)[1]
@@ -462,6 +539,25 @@ def build_bottom(right: bool) -> Solid:
     return body
 
 
+def leg_reference_parts(angle_deg: float = -90.0) -> list:
+    """Stock leg for the assembly preview (hub, arm, foot) seated on each detent boss and
+    swung to angle_deg in the wall plane (0 = along the wall, -90 = down)."""
+    parts = []
+    a = math.radians(angle_deg)
+    arm_t, arm_w = 6.0, 8.0
+    hub_x0 = -LEG_BOSS_H
+    for (px, py), (nx, ny) in leg_mounts():
+        hub = Pos(hub_x0, 0, LEG_Z) * Rot(0, -90, 0) * Cylinder(
+            LEG_HUB_D / 2, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        arm_x = hub_x0 - LEG_HUB_L + arm_t / 2
+        reach = LEG_LEN - LEG_FOOT_D / 2
+        arm = (Pos(arm_x, 0, LEG_Z) * Rot(math.degrees(a), 0, 0) *
+               Box(arm_t, reach, arm_w, align=(Align.CENTER, Align.MIN, Align.CENTER)))
+        foot = Pos(arm_x, reach * math.cos(a), LEG_Z + reach * math.sin(a)) * Sphere(LEG_FOOT_D / 2)
+        parts.append(_leg_frame(px, py, nx, ny, hub + arm + foot))
+    return parts
+
+
 def export_fitcheck_dxf(path: str):
     """1:1 top-view drawing (right half): outline, wall, well, switch cutouts,
     PCB screw holes, jacks. Print at 100 % and lay the EZ PCB on it."""
@@ -503,8 +599,7 @@ def main(outdir: str):
     print("Screw clearances to switch housings (mm):")
     for i, sx, sy, w in clearance_report(0):
         print(f"  #{i} ({sx:7.2f},{sy:7.2f}) clearance {w:5.2f}  boss r {boss_radius(sx, sy):.2f}")
-    for (px, py), (nx, ny) in leg_mounts():
-        print(f"  tent-leg pad depth at ({px+OX:6.1f},{-py+OY:6.1f}): {leg_pad_depth(px, py, nx, ny):.2f} mm")
+    leg_check()
     export_fitcheck_dxf(os.path.join(outdir, "ergodox_right_fitcheck.dxf"))
     parts = {}
     for side in ("right", "left"):
@@ -521,6 +616,9 @@ def main(outdir: str):
         bb = s.bounding_box()
         print(f"{name:13s} vol {s.volume/1000:7.1f} cm3  mass(6061) {s.volume*2.70e-3:6.0f} g  "
               f"bbox {bb.size.X:.1f} x {bb.size.Y:.1f} x {bb.size.Z:.1f}  valid={s.is_valid}  solids={len(s.solids())}")
+    asm = Compound([parts["right_top"], parts["right_bottom"], *leg_reference_parts()])
+    export_step(asm, os.path.join(outdir, "ergodox_right_assembly_with_legs.step"))
+    export_stl(asm, os.path.join(outdir, "ergodox_right_assembly_with_legs.stl"), tolerance=0.05)
     bad = [name for name, s in parts.items() if not s.is_valid or len(s.solids()) != 1]
     if bad:
         sys.exit(f"invalid geometry: {', '.join(bad)}")
