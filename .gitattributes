@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+# CAD files
+*.step text -diff
+*.stl  binary
+*.dxf  text -diff
+
+*.jpg binary
+*.png binary

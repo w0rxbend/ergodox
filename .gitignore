@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# CAD / CAM scratch files
+*.FCStd1
+*.bak
+*~
+*.tmp
+/scratch/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Generated outputs: run `make model`, or download a GitHub release
+/exports/
+/dist/

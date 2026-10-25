@@ -1,0 +1,11 @@
+# Model generation (cad/ergodox_case.py); build123d needs Python 3.10-3.13
+build123d==0.13.0
+shapely==2.2.0
+ezdxf==1.4.5
+
+# Preview renders (tools/)
+trimesh==5.2.0
+networkx
+numpy
+matplotlib
+pillow

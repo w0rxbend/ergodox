@@ -1,0 +1,83 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    name: Generate CAD exports
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build model (fails on invalid geometry)
+        run: mkdir -p exports && make PYTHON=python model | tee exports/build-report.txt
+
+      - name: Render previews
+        run: make PYTHON=python renders
+
+      - name: Package archives
+        run: |
+          version="${GITHUB_REF_NAME//\//-}"
+          [[ "$GITHUB_REF_TYPE" == tag ]] || version="${version}-${GITHUB_SHA::7}"
+          name="ergodox-cnc-case-${version}"
+          mkdir -p dist
+          stage() {  # stage <dir> <files...>
+            local d="dist/$1"; shift
+            mkdir -p "$d" && cp "$@" README.md LICENSE "$d"/
+          }
+          stage "${name}-stl"  exports/*.stl exports/build-report.txt
+          stage "${name}-step" exports/*.step exports/*.dxf exports/build-report.txt
+          (cd dist && for d in */; do zip -qr "${d%/}.zip" "$d"; done)
+          (cd dist && sha256sum *.zip > SHA256SUMS.txt)
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ergodox-cnc-case
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+            renders/*.png
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: model
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ergodox-cnc-case
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sed "s|REPO_URL|$GITHUB_SERVER_URL/$GITHUB_REPOSITORY|g" .github/release-notes.md > notes.md
+          gh release create "$GITHUB_REF_NAME" \
+            dist/*.zip dist/SHA256SUMS.txt \
+            --title "ErgoDox CNC case $GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag
