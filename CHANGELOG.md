@@ -3,6 +3,23 @@
 This project uses [Semantic Versioning](https://semver.org/). Each `v*` tag publishes a GitHub release
 with STL and STEP archives.
 
+## [0.3.0] - 2026-10-26
+
+### Added
+
+- Manufacturing drawings, as one A3 PDF per part, generated from the STEP files by `cad/drawings.py`:
+  - a thread table (size, right-hand, 6H, tap drill, depth, location);
+  - the detent-boss sheet: 36 teeth, profile, section, specification;
+  - tolerances, finish and cosmetic surfaces.
+- JLCCNC order package (`make order`, released as `*-jlccnc-order.zip`): STEP + PDF per part,
+  `hole_table.csv`, and `ORDER_NOTES.md` with remarks in English and Chinese.
+- `docs/jlccnc-order.md`: the ordering guide and answers to likely engineering questions.
+
+### Fixed
+
+- Screw list: holes T1 and T5 are both blind under the key well, so each half needs 2 × M2.5×12 and
+  6 × M2.5×14. The list said 1 and 7.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added

@@ -6,8 +6,8 @@
 |---|---|---|
 | 1 | Top shell, 6061-T6 (or 7075 for a stiffer plate) | stock ≥ 195 × 168 × 11 mm |
 | 1 | Bottom tray, 6061-T6 | stock ≥ 195 × 168 × 8 mm |
-| 7 | M2.5 × 14 countersunk screw, ISO 10642 / DIN 7991 | bezel and edge bosses, about 5.4 mm thread engagement |
-| 1 | M2.5 × 12 countersunk screw | centre boss under the plate; the hole is blind and leaves 1.1 mm of skin |
+| 6 | M2.5 × 14 countersunk screw, ISO 10642 / DIN 7991 | bezel and edge bosses (T2–T4, T6–T8), about 5.4 mm thread engagement |
+| 2 | M2.5 × 12 countersunk screw | the two bosses under the key well (T1 by the thumb cluster, T5 in the centre); the holes are blind and leave 1.1 mm of skin |
 | 4 | Rubber foot, Ø10 mm | recesses are Ø10.5 × 0.6 mm |
 | 3 | Stock EZ legs with their spring M3 thumbscrews | brackets not needed ([legs.md](legs.md)) |
 | — | Stock EZ PCB, switches, keycaps | |

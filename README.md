@@ -32,7 +32,7 @@ STL files for a 3D-printed test fit, and a 1:1 DXF drawing for checking your PCB
 |---|---|
 | Size per half | 194.4 × 166.5 × 17.6 mm (including the leg bosses) |
 | Mass per half (6061-T6) | ≈ 350 g (top 142 g + bottom 209 g) |
-| Fasteners per half | 7 × M2.5×14 + 1 × M2.5×12 countersunk (ISO 10642) |
+| Fasteners per half | 6 × M2.5×14 + 2 × M2.5×12 countersunk (ISO 10642) |
 | Feet | 4 × Ø10 mm rubber bumpers in 0.6 mm recesses |
 | Tent/tilt legs | 3 stock EZ legs and M3 thumbscrews per half; the brackets are not needed |
 
@@ -42,6 +42,9 @@ Ready-made files are attached to every [GitHub release](../../releases):
 
 - `ergodox-cnc-case-<version>-stl.zip` contains the 4 STL files, for a 3D-printed test fit.
 - `ergodox-cnc-case-<version>-step.zip` contains the 4 STEP files and `ergodox_right_fitcheck.dxf`, for CAM or a CNC shop.
+- `ergodox-cnc-case-<version>-jlccnc-order.zip` is a ready-to-upload order package: each STEP plus a PDF
+  manufacturing drawing (threads, detent teeth, tolerances, finish) and a hole table. See
+  [docs/jlccnc-order.md](docs/jlccnc-order.md).
 
 > [!WARNING]
 > The case outline was measured from photos (±1–2 mm). Work through
@@ -55,6 +58,7 @@ You need Python **3.10–3.13**. build123d/OCP has no wheels for 3.14 yet.
 make setup      # creates .venv and installs requirements.txt
 make model      # writes exports/*.step, *.stl and the fit-check DXF
 make renders    # refreshes renders/*.png from the exports
+make order      # PDF drawings + order package in exports/order (needs model)
 make help       # lists all targets
 ```
 
@@ -67,6 +71,7 @@ To use another interpreter, run `make PYTHON=/path/to/python model`.
 
 ```
 cad/ergodox_case.py      parametric model: all dimensions, geometry and export
+cad/drawings.py          PDF manufacturing drawings + CNC order package
 tools/                   preview helpers: z-buffer renderer, cross-section, photo overlay
 renders/                 preview images used in the docs
 docs/                    design notes, fit check, machining guide, sources
@@ -83,6 +88,7 @@ exports/                 (git-ignored) generated STEP/STL/DXF
 | [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 detent boss, measurements, what to check |
 | [docs/fit-check.md](docs/fit-check.md) | What to measure on your keyboard before machining |
 | [docs/machining.md](docs/machining.md) | Bill of materials, setups, tooling, finishing |
+| [docs/jlccnc-order.md](docs/jlccnc-order.md) | Ordering from JLCCNC: form settings, remarks to paste (EN/中文), answers to engineering questions |
 | [docs/sources.md](docs/sources.md) | References and prior art |
 
 ## Previews

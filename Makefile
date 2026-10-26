@@ -5,8 +5,9 @@ PYTHON  ?= .venv/bin/python
 EXPORTS := exports
 RENDERS := renders
 PHOTO   := docs/photos/photo_15_2026-10-25_14-30-30.jpg
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
-.PHONY: all setup model renders clean help
+.PHONY: all setup model renders order clean help
 
 all: model renders ## Build CAD exports and preview renders
 
@@ -31,6 +32,11 @@ renders: ## Regenerate PNG previews in renders/ (needs exports)
 	$(PYTHON) tools/section.py $(EXPORTS) $(RENDERS)/section.png
 	$(PYTHON) tools/leg_section.py $(EXPORTS) $(RENDERS)/leg_section.png
 	$(PYTHON) tools/overlay.py $(PHOTO) $(RENDERS)/overlay_on_photo.png
+
+order: ## PDF drawings + JLCCNC order package in exports/order (needs exports)
+	rm -rf $(EXPORTS)/order
+	$(PYTHON) cad/drawings.py $(EXPORTS) $(EXPORTS)/order $(VERSION)
+	cp docs/jlccnc-order.md $(EXPORTS)/order/ORDER_NOTES.md
 
 clean: ## Remove Python caches
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
