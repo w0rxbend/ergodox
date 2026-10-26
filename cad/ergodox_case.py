@@ -63,7 +63,7 @@ STABILIZERS = False      # plate-mount Cherry stab cutouts on the two 2u thumb k
 # Case outline (KiCad frame, right half), measured from photos
 CASE_X_IN = 55.6         # inner (thumb side) edge
 CASE_X_OUT = 210.6       # outer edge
-CASE_Y_TOP = 28.6        # back edge
+CASE_Y_TOP = 27.1        # back edge (1.5 mm more room for the jacks and back-strip parts)
 CASE_Y_BOT = 158.6       # front edge of the main body
 THUMB_MARGIN = 5.5       # case margin around thumb key cells
 R_TOP_CORNERS = 10.0
@@ -94,11 +94,21 @@ LEG_BOSS_H = 1.2         # boss height above the wall face (tooth tips)
 LEG_TEETH = 36           # radial detent teeth (stock: 10 deg steps) - count yours
 LEG_TOOTH_R0 = 2.2       # teeth run from this radius to the boss edge
 LEG_TOOTH_ANGLE = 90.0   # included angle of the V teeth
-# Reference geometry of the stock leg (assembly preview only)
-LEG_HUB_D = 10.4
-LEG_HUB_L = 7.5
-LEG_LEN = 47.0           # pivot to foot tip
-LEG_FOOT_D = 9.0
+# Custom CNC leg (replaces the stock leg; reuses the stock M3 spring thumbscrew). Hub and
+# arm sizes are from caliper photos of the stock leg. The hub teeth are the exact negative
+# of the boss teeth above, so the pair always meshes. See docs/legs.md.
+LEG_HUB_D = 10.4         # stock: 10.4-10.5
+LEG_HUB_L = 8.0          # hub length along the screw, toothed face to spring face
+LEG_HOLE_D = 3.4         # M3 clearance
+LEG_CBORE = (6.5, 4.0)   # spring counterbore in the outer face (diameter, depth)
+LEG_ARM_W = 7.5          # arm width in the swing plane at the hub (stock ~7.5)
+LEG_ARM_T = 6.0          # arm thickness along the screw, flush with the spring face
+LEG_NECK_D = 6.0         # round neck behind the foot cap (= arm width there)
+LEG_LEN = 47.0           # pivot to foot tip, cap fitted
+LEG_FOOT_D = 9.0         # foot cap outside diameter
+LEG_CAP_L = 8.5          # foot cap length (Ø9 cylinder + dome)
+LEG_SPIGOT = (4.5, 5.0)  # spigot for the cap (diameter, length)
+LEG_EDGE = 0.3           # edge chamfer on the hub
 
 # Rubber feet recesses
 FOOT_D = 10.5
@@ -158,6 +168,20 @@ LEDS = [(147.7, 43.0), (151.8, 43.0), (155.9, 43.0)]   # right half only
 LED_D = 1.8
 RESET = (190.9, 42.6)                   # right half only
 RESET_D = 1.5
+# Radial electrolytic capacitor lying on its side on the PCB top, in the back strip, leads bent
+# towards the outer edge. Measured from top-side photos of the EZ PCBs (images/pcb, about
+# ±1 mm). The two PCBs differ, so each half has its own position and pocket.
+#   left:  above the 3rd column from the outer edge, x 140.8-152.4 (photo 3)
+#   right: just inward of the screw at (118.2, 37.1), x 115.6-126.7 (photo 18-49-10 #2)
+# Each pocket fills the back strip between pocket_x, from the back wall to the key-well wall,
+# keeps the PCB screw bosses, and leaves CAP_SKIN under the cosmetic top face.
+CAPS = {
+    True: dict(pos=(121.15, 45.1), size=(11.1, 7.0), pocket_x=(109.0, 131.0)),     # right half
+    False: dict(pos=(146.6, 39.35), size=(11.6, 6.1), pocket_x=(124.5, 167.0)),    # left half
+}                        # size: length along the back wall (body + leads) x body diameter
+CAP_H = 6.5              # max part height above the PCB top (lying body + margin)
+CAP_CLEAR = 1.0          # min clearance around it inside the pocket
+CAP_SKIN = 1.5
 
 # Tent leg positions, as on the stock EZ (measured from photos, ±2 mm)
 LEG_MAIN_Y = 64.0        # outer and inner main walls
@@ -398,29 +422,80 @@ def leg_hole_depth(px, py, nx, ny, well: list[Face]) -> float:
     return min(LEG_DEPTH, depth)
 
 
-def detent_boss() -> Solid:
-    """Toothed boss in a local frame: axis along +Z, wall face at Z = 0, tooth tips at
-    LEG_BOSS_H. V grooves with apexes on the axis, like the stock nut (Hirth-style)."""
-    from build123d import Polyline as _PL, loft
-    r1 = LEG_BOSS_D / 2
-    boss = Pos(0, 0, -WALL / 2) * Cylinder(r1, WALL / 2 + LEG_BOSS_H,
-                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
-    half = math.pi / LEG_TEETH                               # half pitch angle
-    k = math.tan(half) / math.tan(math.radians(LEG_TOOTH_ANGLE) / 2)   # depth / radius
+def tooth_k() -> float:
+    """Tooth height / radius of the radial V teeth (sharp V, full pitch)."""
+    return math.tan(math.pi / LEG_TEETH) / math.tan(math.radians(LEG_TOOTH_ANGLE) / 2)
+
+
+def detent_grooves(r_out: float, z_tip: float) -> list:
+    """LEG_TEETH V-groove solids, axis +Z, tip plane at z_tip, apex lines meeting the axis in
+    the tip plane. Cut from the boss they make its teeth; added to the leg hub they make
+    its teeth, so the hub is the exact negative of the boss."""
+    from build123d import loft
+    half, k = math.pi / LEG_TEETH, tooth_k()
     grooves = []
     for i in range(LEG_TEETH):
         secs = []
-        for r in (LEG_TOOTH_R0, r1 + 0.3):
+        for r in (LEG_TOOTH_R0, r_out):
             w = r * math.tan(half)
-            pts = [(r, -w, LEG_BOSS_H + 0.01), (r, w, LEG_BOSS_H + 0.01), (r, 0, LEG_BOSS_H - r * k)]
-            secs.append(make_face(_PL(*pts, close=True)))
+            pts = [(r, -w, z_tip + 0.01), (r, w, z_tip + 0.01), (r, 0, z_tip - r * k)]
+            secs.append(make_face(Polyline(*pts, close=True)))
         grooves.append(Rot(0, 0, i * 360 / LEG_TEETH) * loft(secs))
-    boss -= grooves
+    return grooves
+
+
+def detent_boss() -> Solid:
+    """Toothed boss in a local frame: axis along +Z, wall face at Z = 0, tooth tips at
+    LEG_BOSS_H. V grooves with apexes on the axis, like the stock nut (Hirth-style)."""
+    r1 = LEG_BOSS_D / 2
+    boss = Pos(0, 0, -WALL / 2) * Cylinder(r1, WALL / 2 + LEG_BOSS_H,
+                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
+    boss -= detent_grooves(r1 + 0.3, LEG_BOSS_H)
     # flat land inside the teeth at root depth, so the hub seats on the teeth only
-    root = LEG_TOOTH_R0 * k
+    root = LEG_TOOTH_R0 * tooth_k()
     boss -= Pos(0, 0, LEG_BOSS_H - root) * Cylinder(LEG_TOOTH_R0, 1,
                                                     align=(Align.CENTER, Align.CENTER, Align.MIN))
     return boss
+
+
+def cap_pocket(right: bool) -> Face:
+    """Pocket outline (part frame, right-half coordinates) for one half: the back strip between
+    pocket_x, inside the wall and WALL / 2 + 0.5 away from the key well, around the PCB screw
+    bosses, convex corners rounded to the tool radius."""
+    cap = CAPS[right]
+    inner = offset(outline_face(), -WALL, kind=Kind.ARC).faces()[0]
+    (xa, ya), (xb, yb) = P(cap["pocket_x"][0], CASE_Y_TOP - 5), P(cap["pocket_x"][1], CASE_Y_TOP + 40)
+    s = Sketch() + inner
+    s &= Pos((xa + xb) / 2, (ya + yb) / 2) * Rectangle(abs(xb - xa), abs(yb - ya))
+    for wf in well_face(extra=WALL / 2 + 0.5):
+        s -= wf
+    for sx, sy in SCREWS:
+        s -= Pos(*P(sx, sy)) * Circle(boss_radius(sx, sy))
+    s = offset(offset(s, -TOOL_R, kind=Kind.ARC), TOOL_R, kind=Kind.ARC)
+    c = Vector(*P(*cap["pos"]))
+    return next(f for f in s.faces() if f.is_inside(c))
+
+
+def cap_check():
+    """Each capacitor (plus CAP_CLEAR) must sit inside its pocket, clear of the PCB bosses."""
+    ceil = Z_TOP - CAP_SKIN
+    for right, cap in CAPS.items():
+        pocket = cap_pocket(right)
+        c = Vector(*P(*cap["pos"]))
+        w, h = cap["size"][0] / 2 + CAP_CLEAR, cap["size"][1] / 2 + CAP_CLEAR
+        edge = [c + Vector(w * u, h * v) for u in (-1, -0.5, 0, 0.5, 1) for v in (-1, 1)]
+        if not all(pocket.is_inside(p) for p in edge):
+            sys.exit(f"{'right' if right else 'left'} capacitor (plus clearance) does not fit in its pocket")
+        for sx, sy in SCREWS:
+            b = Vector(*P(sx, sy))
+            dx, dy = max(abs(b.X - c.X) - w, 0), max(abs(b.Y - c.Y) - h, 0)
+            if math.hypot(dx, dy) < boss_radius(sx, sy):
+                sys.exit(f"capacitor clearance hits the PCB boss at ({sx:.1f},{sy:.1f})")
+        bb = pocket.bounding_box()
+        print(f"  {'right' if right else 'left '} capacitor {cap['size'][0]}x{cap['size'][1]} at "
+              f"{cap['pos']}: pocket x {bb.min.X + OX:.1f}-{bb.max.X + OX:.1f}, "
+              f"y {OY - bb.max.Y:.1f}-{OY - bb.min.Y:.1f}, area {pocket.area:.0f} mm2, ceiling {ceil:.1f} "
+              f"= {ceil - Z_PCB_TOP:.1f} above PCB (skin {CAP_SKIN})")
 
 
 def leg_check():
@@ -496,6 +571,9 @@ def build_top(right: bool) -> Solid:
         body -= _leg_frame(px, py, nx, ny, Pos(-LEG_BOSS_H - 0.01, 0, LEG_Z) * Rot(0, 90, 0) * Cylinder(
             LEG_TAP_D / 2, depth + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN)))
 
+    # capacitor clearance pocket, 0.5 above the tallest allowed part
+    body -= prism(cap_pocket(right), Z_PCB_TOP - 0.01, Z_TOP - CAP_SKIN)
+
     # jack notches in the back wall (open towards the parting plane)
     yb = P(0, CASE_Y_TOP)[1]
     jacks = [TRRS] + ([USB] if right else [])
@@ -539,22 +617,57 @@ def build_bottom(right: bool) -> Solid:
     return body
 
 
-def leg_reference_parts(angle_deg: float = -90.0) -> list:
-    """Stock leg for the assembly preview (hub, arm, foot) seated on each detent boss and
-    swung to angle_deg in the wall plane (0 = along the wall, -90 = down)."""
+def build_leg() -> Solid:
+    """Custom tent leg, own frame: hub axis +Z, toothed face at Z = 0 with the teeth below
+    it (towards the case), spring face at Z = LEG_HUB_L, arm along +Y. One part fits all
+    six positions (it is symmetric about the YZ plane)."""
+    r = LEG_HUB_D / 2
+    hub = Cylinder(r, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    hub = chamfer(hub.edges().group_by(Axis.Z)[-1], LEG_EDGE)
+    zc = LEG_HUB_L - LEG_ARM_T / 2                       # arm flush with the spring face
+    y_neck = LEG_LEN - LEG_CAP_L                         # shoulder the foot cap sits on
+    neck_l = 4.0
+    y1 = y_neck - neck_l
+    plan = make_face(Polyline((-LEG_ARM_W / 2, 0), (LEG_ARM_W / 2, 0), (LEG_NECK_D / 2, y1),
+                              (-LEG_NECK_D / 2, y1), close=True))
+    arm = Pos(0, 0, LEG_HUB_L - LEG_ARM_T) * extrude(plan, LEG_ARM_T)
+    arm = fillet([e for e in arm.edges() if abs((e.end_point() - e.start_point()).normalized().Y) > 0.9],
+                 min(1.5, LEG_ARM_T / 2 - 0.2))
+    neck = Pos(0, y_neck - neck_l, zc) * Rot(-90, 0, 0) * Cylinder(
+        LEG_NECK_D / 2, neck_l, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    spigot = Pos(0, y_neck, zc) * Rot(-90, 0, 0) * Cylinder(
+        LEG_SPIGOT[0] / 2, LEG_SPIGOT[1], align=(Align.CENTER, Align.CENTER, Align.MIN))
+    spigot = chamfer(spigot.edges().sort_by(Axis.Y)[-1], 0.4)
+    leg = hub + arm + neck + spigot
+    leg -= Cylinder(LEG_HOLE_D / 2, 3 * LEG_HUB_L)
+    leg -= Pos(0, 0, LEG_HUB_L - LEG_CBORE[1]) * Cylinder(
+        LEG_CBORE[0] / 2, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    teeth = Pos(0, 0, -2) * Cylinder(r, 2.005, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    leg += [teeth & g for g in detent_grooves(r + 0.3, 0.0)]
+    return leg
+
+
+def build_leg_cap() -> Solid:
+    """Foot cap (print in TPU), in the leg frame: slides onto the spigot."""
+    y0, zc = LEG_LEN - LEG_CAP_L, LEG_HUB_L - LEG_ARM_T / 2
+    body_l = LEG_CAP_L - LEG_FOOT_D / 2
+    cap = Pos(0, y0, zc) * Rot(-90, 0, 0) * Cylinder(
+        LEG_FOOT_D / 2, body_l, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    cap += Pos(0, y0 + body_l, zc) * Sphere(LEG_FOOT_D / 2)
+    cap &= Pos(0, y0, zc) * Box(2 * LEG_FOOT_D, LEG_CAP_L, 2 * LEG_FOOT_D, align=(Align.CENTER, Align.MIN, Align.CENTER))
+    cap -= Pos(0, y0 - 0.01, zc) * Rot(-90, 0, 0) * Cylinder(
+        LEG_SPIGOT[0] / 2 - 0.1, LEG_SPIGOT[1], align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return cap
+
+
+def leg_parts(swing_deg: float = 90.0) -> list:
+    """Legs + caps seated on each detent boss for the assembly preview. swing_deg turns the
+    leg about the screw in 10 deg detent steps (90 = straight down, 0 / 180 = along the wall)."""
+    leg = build_leg() + build_leg_cap()
     parts = []
-    a = math.radians(angle_deg)
-    arm_t, arm_w = 6.0, 8.0
-    hub_x0 = -LEG_BOSS_H
     for (px, py), (nx, ny) in leg_mounts():
-        hub = Pos(hub_x0, 0, LEG_Z) * Rot(0, -90, 0) * Cylinder(
-            LEG_HUB_D / 2, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
-        arm_x = hub_x0 - LEG_HUB_L + arm_t / 2
-        reach = LEG_LEN - LEG_FOOT_D / 2
-        arm = (Pos(arm_x, 0, LEG_Z) * Rot(math.degrees(a), 0, 0) *
-               Box(arm_t, reach, arm_w, align=(Align.CENTER, Align.MIN, Align.CENTER)))
-        foot = Pos(arm_x, reach * math.cos(a), LEG_Z + reach * math.sin(a)) * Sphere(LEG_FOOT_D / 2)
-        parts.append(_leg_frame(px, py, nx, ny, hub + arm + foot))
+        seat = Pos(0, 0, LEG_Z) * Rot(0, -90, 0) * Pos(0, 0, LEG_BOSS_H) * Rot(0, 0, swing_deg)
+        parts.append(_leg_frame(px, py, nx, ny, seat * leg))
     return parts
 
 
@@ -582,6 +695,8 @@ def export_fitcheck_dxf(path: str):
         dxf.add_shape((Pos(*P(sx, sy)) * Circle(boss_radius(sx, sy))).faces()[0].outer_wire(), layer="SCREWS")
     for x, y in LEDS + [RESET]:
         dxf.add_shape((Pos(*P(x, y)) * Circle(0.9)).faces()[0].outer_wire(), layer="FEATURES")
+    cap = CAPS[True]
+    dxf.add_shape((Pos(*P(*cap["pos"])) * Rectangle(*cap["size"])).faces()[0].outer_wire(), layer="FEATURES")
     yb = P(0, CASE_Y_TOP)[1]
     for jx, jw, _ in (TRRS, USB):
         dxf.add_shape((Pos(P(jx, 0)[0], yb + WALL / 2) * Rectangle(jw, WALL)).faces()[0].outer_wire(),
@@ -600,6 +715,7 @@ def main(outdir: str):
     for i, sx, sy, w in clearance_report(0):
         print(f"  #{i} ({sx:7.2f},{sy:7.2f}) clearance {w:5.2f}  boss r {boss_radius(sx, sy):.2f}")
     leg_check()
+    cap_check()
     export_fitcheck_dxf(os.path.join(outdir, "ergodox_right_fitcheck.dxf"))
     parts = {}
     for side in ("right", "left"):
@@ -616,10 +732,18 @@ def main(outdir: str):
         bb = s.bounding_box()
         print(f"{name:13s} vol {s.volume/1000:7.1f} cm3  mass(6061) {s.volume*2.70e-3:6.0f} g  "
               f"bbox {bb.size.X:.1f} x {bb.size.Y:.1f} x {bb.size.Z:.1f}  valid={s.is_valid}  solids={len(s.solids())}")
-    asm = Compound([parts["right_top"], parts["right_bottom"], *leg_reference_parts()])
+    leg, cap = build_leg(), build_leg_cap()
+    for name, s in (("leg", leg), ("leg_cap", cap)):
+        export_step(s, os.path.join(outdir, f"ergodox_{name}.step"))
+        export_stl(s, os.path.join(outdir, f"ergodox_{name}.stl"), tolerance=0.01, angular_tolerance=0.1)
+        bb = s.bounding_box()
+        print(f"{name:13s} vol {s.volume/1000:7.2f} cm3  mass(6061) {s.volume*2.70e-3:6.1f} g  "
+              f"bbox {bb.size.X:.1f} x {bb.size.Y:.1f} x {bb.size.Z:.1f}  valid={s.is_valid}  solids={len(s.solids())}")
+    parts_ok = dict(parts, leg=leg, leg_cap=cap)
+    asm = Compound([parts["right_top"], parts["right_bottom"], *leg_parts()])
     export_step(asm, os.path.join(outdir, "ergodox_right_assembly_with_legs.step"))
     export_stl(asm, os.path.join(outdir, "ergodox_right_assembly_with_legs.stl"), tolerance=0.05)
-    bad = [name for name, s in parts.items() if not s.is_valid or len(s.solids()) != 1]
+    bad = [name for name, s in parts_ok.items() if not s.is_valid or len(s.solids()) != 1]
     if bad:
         sys.exit(f"invalid geometry: {', '.join(bad)}")
     return parts

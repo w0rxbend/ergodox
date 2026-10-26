@@ -21,8 +21,9 @@ STL files for a 3D-printed test fit, and a 1:1 DXF drawing for checking your PCB
 - **Matches the EZ:**
   - TRRS openings on both halves.
   - USB, 3 LED windows and the reset hole on the right half only.
-  - Mounts for the **stock EZ tent/tilt legs and M3 thumbscrews**: a tapped M3 hole with a toothed
-    Ø10 detent boss, so the legs keep their click-stop positions. See [docs/legs.md](docs/legs.md).
+  - **Tent/tilt legs** with click stops: a tapped M3 hole with a toothed Ø10 detent boss in the case,
+    and a **custom CNC leg** whose hub teeth are the exact negative of the boss. It uses the stock EZ
+    M3 spring thumbscrew. See [docs/legs.md](docs/legs.md).
 - **Designed for milling.** Internal corners are R ≥ 1 mm, and the jack notches open towards the
   parting plane. The top takes 2 setups plus a side setup for the leg bosses; the bottom takes 2 setups.
 - **Fully parametric.** Every dimension is a named constant at the top of
@@ -30,18 +31,18 @@ STL files for a 3D-printed test fit, and a 1:1 DXF drawing for checking your PCB
 
 | | |
 |---|---|
-| Size per half | 194.4 × 166.5 × 17.6 mm (including the leg bosses) |
-| Mass per half (6061-T6) | ≈ 350 g (top 142 g + bottom 209 g) |
+| Size per half | 194.4 × 168.0 × 17.6 mm (including the leg bosses) |
+| Mass per half (6061-T6) | ≈ 353 g (top 142 g + bottom 211 g) |
 | Fasteners per half | 6 × M2.5×14 + 2 × M2.5×12 countersunk (ISO 10642) |
 | Feet | 4 × Ø10 mm rubber bumpers in 0.6 mm recesses |
-| Tent/tilt legs | 3 stock EZ legs and M3 thumbscrews per half; the brackets are not needed |
+| Tent/tilt legs | 3 custom legs (5 g, 6061) + TPU foot caps + stock M3 thumbscrews per half |
 
 ## Download
 
 Ready-made files are attached to every [GitHub release](../../releases):
 
-- `ergodox-cnc-case-<version>-stl.zip` contains the 4 STL files, for a 3D-printed test fit.
-- `ergodox-cnc-case-<version>-step.zip` contains the 4 STEP files and `ergodox_right_fitcheck.dxf`, for CAM or a CNC shop.
+- `ergodox-cnc-case-<version>-stl.zip` contains the STL files (4 case parts, the leg and its foot cap), for a 3D-printed test fit.
+- `ergodox-cnc-case-<version>-step.zip` contains the STEP files (case parts and leg) and `ergodox_right_fitcheck.dxf`, for CAM or a CNC shop.
 - `ergodox-cnc-case-<version>-jlccnc-order.zip` is a ready-to-upload order package: each STEP plus a PDF
   manufacturing drawing (threads, detent teeth, tolerances, finish) and a hole table. See
   [docs/jlccnc-order.md](docs/jlccnc-order.md).
@@ -85,7 +86,7 @@ exports/                 (git-ignored) generated STEP/STL/DXF
 | Document | Contents |
 |---|---|
 | [docs/design.md](docs/design.md) | Where each dimension comes from, the coordinate frame, the Z stack, part breakdown |
-| [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 detent boss, measurements, what to check |
+| [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 detent boss, the custom leg, measurements, what to check |
 | [docs/fit-check.md](docs/fit-check.md) | What to measure on your keyboard before machining |
 | [docs/machining.md](docs/machining.md) | Bill of materials, setups, tooling, finishing |
 | [docs/jlccnc-order.md](docs/jlccnc-order.md) | Ordering from JLCCNC: form settings, remarks to paste (EN/中文), answers to engineering questions |
@@ -102,11 +103,17 @@ cutouts and magenta the holes:
 
 ![Overlay on photo](renders/overlay_on_photo.png)
 
-The stock tent legs, deployed, with a section through the outer leg mount:
+The custom tent legs, deployed, with a section through the outer leg mount:
 
 | Assembly preview | Leg mount section |
 |---|---|
 | ![](renders/right_with_legs.png) | ![](renders/leg_section.png) |
+
+The custom leg and its toothed face:
+
+| Leg | Toothed face |
+|---|---|
+| ![](renders/leg.png) | ![](renders/leg_teeth.png) |
 
 The cross-sections show the PCB clamped between the top bosses and the bottom posts:
 

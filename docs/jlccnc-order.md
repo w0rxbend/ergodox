@@ -1,6 +1,6 @@
 # Ordering from JLCCNC
 
-This page explains how to order one keyboard (4 parts) from [JLCCNC](https://jlccnc.com). The same files
+This page explains how to order one keyboard (4 case parts + 6 legs) from [JLCCNC](https://jlccnc.com). The same files
 work for any other CNC service.
 
 ## The order package
@@ -15,6 +15,8 @@ or build it with `make order`. It contains:
 | `ergodox_right_bottom.step` / `.pdf` | part 2 | Countersunk holes and foot recesses (no threads) |
 | `ergodox_left_top.step` / `.pdf` | part 3 | Mirror of part 1. The threads stay right-hand |
 | `ergodox_left_bottom.step` / `.pdf` | part 4 | Mirror of part 2 |
+| `ergodox_leg.step` / `.pdf` | part 5, **quantity 6** | Tent leg: hub teeth, bore, counterbore (no threads) |
+| `ergodox_leg_cap.stl` | (print yourself, TPU) | Foot cap for the leg; not for CNC |
 | `hole_table.csv` | (keep for reference) | Every hole and thread, in STEP coordinates |
 | `ORDER_NOTES.md` | (this page) | Form settings, remarks text, answers |
 
@@ -24,22 +26,22 @@ They contain no thread geometry, which is why each part needs its PDF drawing.
 ## Steps
 
 1. Go to jlccnc.com and choose **CNC Machining → Instant Quote**.
-2. Upload the 4 STEP files. Each one becomes a separate part.
+2. Upload the 5 STEP files. Each one becomes a separate part. Set the leg's quantity to 6.
 3. For each part, attach the PDF with the same name as the 2D drawing.
 4. Set the options as in the table below, then paste the remarks into each part's remarks field.
 5. Submit. Engineering review usually takes a day. Use the answers further down when they ask questions.
 
 ### Form settings
 
-| Option | Top parts (right + left) | Bottom parts (right + left) |
-|---|---|---|
-| Process | CNC milling | CNC milling |
-| Material | Aluminium 6061-T6. 7075-T6 also works and gives a stiffer plate | Aluminium 6061-T6 |
-| Surface finish | Bead blasting + anodizing. Pick a colour; black or silver hides tool marks best | Same as the top, for matching colour |
-| Threads | **Yes. 11 per part: 8 × M2.5 + 3 × M3, all right-hand** | **No** |
-| Tolerance | Standard (ISO 2768-m); the critical values are on the drawing | Standard |
-| Inspection | Standard | Standard |
-| Quantity | 1 each (1 keyboard). Also ask for a price on 2 | 1 each |
+| Option | Top parts (right + left) | Bottom parts (right + left) | Leg |
+|---|---|---|---|
+| Process | CNC milling | CNC milling | CNC milling |
+| Material | Aluminium 6061-T6. 7075-T6 also works and gives a stiffer plate | Aluminium 6061-T6 | Aluminium 6061-T6 |
+| Surface finish | Bead blasting + anodizing. Pick a colour; black or silver hides tool marks best | Same as the top, for matching colour | Same as the top |
+| Threads | **Yes. 11 per part: 8 × M2.5 + 3 × M3, all right-hand** | **No** | **No** |
+| Tolerance | Standard (ISO 2768-m); the critical values are on the drawing | Standard | Standard; the teeth are on the drawing |
+| Inspection | Standard | Standard | Standard |
+| Quantity | 1 each (1 keyboard). Also ask for a price on 2 | 1 each | **6** (ask for 7–8 to have spares) |
 
 If the form wants one thread type per part, choose M2.5 and give the M3 holes in the remarks; the
 drawing lists them all.
@@ -73,6 +75,21 @@ Cosmetic: underside and outer walls.
 左侧零件为镜像件。外观面：底面和外侧壁。
 ```
 
+### Remarks (paste for the LEG)
+
+```
+Quantity 6, identical (not left/right). No threads.
+Toothed face: 36 radial V-teeth (90°, 10° pitch), Ø4.4 to Ø10.4, see drawing details D and E.
+Tooth count is critical: the teeth must mesh with the case bosses (drawing EDX-TOP sheet 2).
+Ø3.4 through bore + Ø6.5 x 4 counterbore on the back face. Spigot Ø4.5 -0.05.
+Same anodize colour as the case parts.
+
+数量6件，完全相同（不分左右）。无螺纹。
+齿面：36个径向V形齿（90°，齿距10°），Ø4.4 至 Ø10.4，见图纸详图D和E。
+齿数必须准确，需与外壳凸台啮合（图纸EDX-TOP第2页）。
+Ø3.4 通孔 + 背面 Ø6.5 x 4 沉孔。端部轴 Ø4.5 -0.05。阳极氧化颜色与外壳相同。
+```
+
 ## Prepared answers to engineering questions
 
 | Likely question | Answer |
@@ -91,8 +108,11 @@ Cosmetic: underside and outer walls.
 | Tolerances not given? | ISO 2768-m. The STEP model is the reference geometry. |
 | Edge breaks? | Break sharp edges 0.1–0.2 mm. Keep tooth crests and switch-cutout edges sharp (≤ 0.1). |
 | Text, logo or engraving? | None. |
+| Leg: how to cut the hub teeth? | 3-axis, toothed face up. Cut a 5° cone from Ø4.4 to the rim, then 36 radial passes of a 90° engraver with its tip on the face plane, indexed 10°. Detail E shows the profile. |
+| Leg: are left and right different? | No. All 6 legs are identical. |
+| Leg: can the teeth be skipped or simplified? | No. Without teeth the leg will not hold its angle. If needed, the teeth can be slightly flattened (≤ 0.1). |
 
 ## After delivery
 
-Check that the screws turn by hand in every thread before assembly. Fit the stock legs and check that
-they click through their positions. Hardware is listed in [machining.md](https://github.com/w0rxbend/ergodox/blob/main/docs/machining.md#bill-of-materials-per-half).
+Check that the screws turn by hand in every thread before assembly. Print the foot caps in TPU and push
+them on. Fit each leg with the stock spring thumbscrew and check that it clicks through its positions. Hardware is listed in [machining.md](https://github.com/w0rxbend/ergodox/blob/main/docs/machining.md#bill-of-materials-per-half).

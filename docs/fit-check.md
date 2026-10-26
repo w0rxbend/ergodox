@@ -9,31 +9,62 @@ your own keyboard before ordering aluminium parts.
    Check the scale with a ruler: the key pitch is 19.05 mm.
 2. Lay your EZ right-hand PCB on the print. Check that:
    - the 8 circles on layer `SCREWS` fall on the PCB mounting holes, and
-   - the PCB sits inside the dashed `WALL_INNER` line. The tightest spots are the two back corners, with 0.3 mm to spare.
+   - the PCB sits inside the dashed `WALL_INNER` line. The tightest spots used to be the two back corners; the back wall now sits 1.5 mm further out.
 3. If something is off, edit `SCREWS`, `CASE_*` or `R_TOP_CORNERS` in `cad/ergodox_case.py` and rebuild.
 
-DXF layers: `OUTLINE`, `WALL_INNER`, `KEY_WELL`, `SWITCH_CUTOUTS`, `SCREWS`, `FEATURES` (jacks, LEDs, reset).
+DXF layers: `OUTLINE`, `WALL_INNER`, `KEY_WELL`, `SWITCH_CUTOUTS`, `SCREWS`, `FEATURES` (jacks, LEDs, reset, capacitor).
 
-## 2. Tent/tilt legs
+### PCB position in a test print
+
+Look through the switch cutouts: the centre hole of each switch footprint must be in the middle of its
+cutout. The PCB must sit on the screw bosses with the screws going in straight, and it must not be pressed
+against a wall. In the v0.3.0 test print, the EZ PCB (PCB-P2308 rev. B) was pushed about 1.2 mm towards
+the front, so v0.4.0 moves the back wall out 1.5 mm. If you still see an offset, measure it and compare
+the PCB screw holes with the bosses: an offset on the holes as well means a wall is pushing the PCB;
+centred holes with offset footprints mean `KEYS` or `SCREWS` is wrong.
+
+## 2. Capacitor in the back strip
+
+Each EZ PCB carries a radial electrolytic capacitor on its top side. It lies on its side in the
+back strip, with its leads bent towards the outer edge. The two PCBs put it in different places
+([`images/pcb`](../images/pcb)), so each top shell has its own pocket (`CAPS` in the model, right-half
+coordinates, about ±1 mm):
+
+| Half | Capacitor | Pocket |
+|---|---|---|
+| Left | above the 3rd column from the outer edge, centre (146.6, 39.35), 11.6 × 6.1 incl. leads | x 124.5–167.0, about 910 mm² |
+| Right | just inward of the screw at (118.2, 37.1), centre (121.15, 45.1), 11.1 × 7.0 incl. leads | x 109–131 around the screw boss, about 420 mm² |
+
+Each pocket runs from the back wall to 2 mm short of the key well. It reaches 7.5 mm above the PCB and
+leaves 1.5 mm under the top face (`CAP_SKIN`).
+
+- On the paper print (right half), the rectangle on layer `FEATURES` next to the middle back screw must
+  cover the capacitor.
+- The capacitor must not stand more than **7.5 mm** above the PCB. Press it flat against the board.
+  The build report prints both pockets, and the build fails if a capacitor (plus 1 mm) doesn't fit its
+  pocket or would touch a PCB boss.
+
+## 3. Tent/tilt legs
 
 The model reuses the stock legs and M3 thumbscrews. Before cutting, check the 3 items listed in
 [legs.md](legs.md#check-before-machining): the tooth count on the leg hub, the thread length and the leg positions.
 
-## 3. Jack openings
+## 4. Jack openings
 
 The TRRS opening is 8 mm wide and the USB opening 12 mm wide; both rise to Z = 15 mm. A straight,
 slim plug fits. A bulky right-angle cable may not. The widths are in `TRRS` and `USB`.
 
-## 4. Stabilisers
+## 5. Stabilisers
 
 These are off by default. Set `STABILIZERS = True` to add Cherry plate-mount stabiliser cutouts for the
 2u thumb keys.
 
-## 5. 3D-printed test fit (recommended)
+## 6. 3D-printed test fit (recommended)
 
 Print the STL files from the `-stl.zip` release archive in PLA or PETG, at 0.2 mm layers with 3 walls.
 Build up the keyboard in the printed case:
 - the switches should click into the plate,
 - the screws should line up with the PCB holes,
 - the cables should plug in,
-- the legs should screw in and click through their positions on the toothed bosses (tap M3 in the print, or use M3 heat-set inserts).
+- the capacitor should sit in its pocket without touching,
+- the legs should screw in and click through their positions on the toothed bosses (tap M3 in the print, or use M3 heat-set inserts). Print `ergodox_leg.stl` (PETG, 0.1 mm layers, toothed face down on a smooth plate) and `ergodox_leg_cap.stl` (TPU) and try them with the stock thumbscrew.

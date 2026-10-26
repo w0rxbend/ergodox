@@ -4,7 +4,8 @@ Manufacturing drawings (A3 PDF) and the CNC order package for the ErgoDox case.
 
 For every part it writes <part>.pdf next to <part>.step: views generated from the
 STEP file, the thread / hole table, general notes and, for the top parts, the detent
-boss sheet (tooth count, profile, section). Also writes hole_table.csv.
+boss sheet (tooth count, profile, section). The tent leg gets its own sheet (hub teeth,
+the negative of the boss). Also writes hole_table.csv.
 
 Usage: drawings.py <exports_dir> <order_dir> [version]
 The STEP files must already exist in <exports_dir> (run ergodox_case.py first).
@@ -39,6 +40,7 @@ VIEWS = {
     "+X": ((500, 0, 0), (0, 0, 1), lambda x, y, z: (y, z)),
     "-X": ((-500, 0, 0), (0, 0, 1), lambda x, y, z: (-y, z)),
 }
+LEG_QTY = 6          # 3 per half; one part fits every position
 
 TOP_MATERIAL = "Aluminium 6061-T6 (7075-T6 acceptable)"
 FINISH = "Fine bead blast + anodize Type II, colour per order"
@@ -344,7 +346,7 @@ def top_sheet2(pdf, shape, right, part, dwg, version):
     # tooth spec table
     tilt = math.degrees(math.atan(k))
     spec = [
-        ["Number of teeth", f"{E.LEG_TEETH}  (CRITICAL — must match the stock ErgoDox EZ leg hub)"],
+        ["Number of teeth", f"{E.LEG_TEETH}  (CRITICAL — must match the leg hub, drawing EDX-LEG)"],
         ["Angular pitch", f"{360 / E.LEG_TEETH:.3f}°, equally spaced, no clocking requirement"],
         ["Tooth form", f"symmetric V, {E.LEG_TOOTH_ANGLE:.0f}° included angle, radial (Hirth / face-serration type)"],
         ["Toothed annulus", f"Ø{2 * r0:.1f} to Ø{E.LEG_BOSS_D:.1f} (to boss rim)"],
@@ -358,7 +360,7 @@ def top_sheet2(pdf, shape, right, part, dwg, version):
         ["Quantity", f"{len(rows)} bosses per part (L1-L{len(rows)}), identical"],
         ["Machining hint", f"90° engraving cutter, {E.LEG_TEETH} radial passes indexed {360 / E.LEG_TEETH:.0f}°, "
                            f"each a straight ramp of {tilt:.2f}°; 4th axis or right-angle head"],
-        ["Mating part", "stock ErgoDox EZ tilt/tent leg hub (Ø10.4, radial teeth) + M3 spring thumbscrew"],
+        ["Mating part", "custom leg ergodox_leg (drawing EDX-LEG, conjugate teeth) + stock M3 spring thumbscrew"],
     ]
     yb = table(ax, 225, 182, [("Detent teeth specification", 38), ("", 147)], spec, size=5.6, row_h=4.0)
     loc = [[r["id"], f"{r['x']:.2f}", f"{r['y']:.2f}", f"{r['z']:.1f}", r["direction"].split("wall, ")[-1],
@@ -399,6 +401,121 @@ def bottom_sheet(pdf, shape, right, part, dwg, version):
     plt.close(fig)
 
 
+def leg_sheet(pdf, shape, part, dwg, version):
+    fig, ax = new_sheet()
+    k = E.tooth_k()
+    r_hub, r0 = E.LEG_HUB_D / 2, E.LEG_TOOTH_R0
+    zc = E.LEG_HUB_L - E.LEG_ARM_T / 2
+    y_sh = E.LEG_LEN - E.LEG_CAP_L
+
+    # view A: toothed face (from -Z), 2.5:1
+    s = 2.5
+    to = place_view(ax, shape, "under", 62, 178, s)
+    text(ax, 20, 282, "VIEW A — toothed face (−Z), scale 2.5:1", size=8, weight="bold")
+    dim(ax, to(r_hub, -r_hub - 2, 0), to(-r_hub, -r_hub - 2, 0), f"Ø{E.LEG_HUB_D} -0.1")
+    dim(ax, to(E.LEG_ARM_W / 2 + 3, 0, 0), to(E.LEG_ARM_W / 2 + 3, y_sh, 0), f"{y_sh:.1f}", off=(5, 0))
+    dim(ax, to(E.LEG_ARM_W / 2 + 9, 0, 0), to(E.LEG_ARM_W / 2 + 9, y_sh + E.LEG_SPIGOT[1], 0),
+        f"{y_sh + E.LEG_SPIGOT[1]:.1f}", off=(5, 0))
+    dim(ax, to(-E.LEG_NECK_D / 2, y_sh + 1.0, 0), to(E.LEG_NECK_D / 2, y_sh + 1.0, 0), f"Ø{E.LEG_NECK_D}",
+        off=(-11, 0), size=5)
+    dim(ax, to(-E.LEG_SPIGOT[0] / 2, y_sh + 3.5, 0), to(E.LEG_SPIGOT[0] / 2, y_sh + 3.5, 0),
+        f"Ø{E.LEG_SPIGOT[0]}", off=(-11, 0), size=5)
+    dim(ax, to(-E.LEG_ARM_W / 2, 8, 0), to(E.LEG_ARM_W / 2, 8, 0), f"{E.LEG_ARM_W}", off=(-10, 0), size=5)
+    text(ax, 62, 108, "Pivot axis = origin of the STEP model.\nArm along +Y, toothed face at Z = 0.",
+         size=5.5, ha="center")
+
+    # side view (+X), 2.5:1, hidden lines show the bore
+    to2 = place_view(ax, shape, "+X", 150, 262, s, hidden=True)
+    text(ax, 95, 282, "VIEW B — side (+X), scale 2.5:1, hidden lines dashed", size=8, weight="bold")
+    dim(ax, to2(0, -r_hub - 2.5, 0), to2(0, -r_hub - 2.5, E.LEG_HUB_L), f"{E.LEG_HUB_L}", off=(-5, 0))
+    dim(ax, to2(0, 12, E.LEG_HUB_L - E.LEG_ARM_T), to2(0, 12, E.LEG_HUB_L), f"{E.LEG_ARM_T}", off=(5, 0))
+    text(ax, to2(0, 0, -1)[0], to2(0, 0, -1)[1] - 1.5, "teeth", size=5.5, ha="center")
+
+    # detail D: toothed face 6:1
+    sd = 6.0
+    cx, cy = 172, 185
+    ax.add_patch(MCircle((cx, cy), r_hub * sd, fill=False, lw=0.8))
+    ax.add_patch(MCircle((cx, cy), r0 * sd, fill=False, lw=0.6))
+    ax.add_patch(MCircle((cx, cy), E.LEG_HOLE_D / 2 * sd, fill=False, lw=0.6))
+    ax.add_patch(MCircle((cx, cy), E.LEG_CBORE[0] / 2 * sd, fill=False, lw=0.3, ls=(0, (2, 1.5)), ec="0.5"))
+    for i in range(E.LEG_TEETH):
+        a = 2 * math.pi * i / E.LEG_TEETH
+        b = a + math.pi / E.LEG_TEETH
+        ax.plot([cx + r0 * sd * math.cos(b), cx + r_hub * sd * math.cos(b)],
+                [cy + r0 * sd * math.sin(b), cy + r_hub * sd * math.sin(b)], color="k", lw=0.35)      # ridge
+        ax.plot([cx + r0 * sd * math.cos(a), cx + r_hub * sd * math.cos(a)],
+                [cy + r0 * sd * math.sin(a), cy + r_hub * sd * math.sin(a)], color="0.5", lw=0.25)    # root
+    dim(ax, (cx - r_hub * sd, cy - r_hub * sd - 4), (cx + r_hub * sd, cy - r_hub * sd - 4), f"Ø{E.LEG_HUB_D}")
+    dim(ax, (cx - r0 * sd, cy + 3), (cx + r0 * sd, cy + 3), f"Ø{2 * r0:.1f}", size=5)
+    dim(ax, (cx - E.LEG_HOLE_D / 2 * sd, cy - 3), (cx + E.LEG_HOLE_D / 2 * sd, cy - 3),
+        f"Ø{E.LEG_HOLE_D} thru", size=5)
+    text(ax, cx, cy + r_hub * sd + 8, f"DETAIL D — toothed face, scale 6:1  ({E.LEG_TEETH} TEETH, "
+         f"{360 / E.LEG_TEETH:.0f}° pitch)", size=7, weight="bold", ha="center")
+    text(ax, cx + r_hub * sd + 2, cy - r_hub * sd + 2, f"counterbore Ø{E.LEG_CBORE[0]} x {E.LEG_CBORE[1]}\n"
+         "deep, from the back face\n(dashed, hidden)", size=5.2, color="0.35", va="bottom")
+
+    # profile at the rim, 20:1 (hub teeth point down, towards the case)
+    pitch = 2 * math.pi * r_hub / E.LEG_TEETH
+    hgt = r_hub * k
+    S2 = 20.0
+    px0, py0 = 125, 112
+    pts = []
+    for i in range(4):
+        pts += [(px0 + i * pitch * S2, py0), (px0 + (i + 0.5) * pitch * S2, py0 - hgt * S2)]
+    pts.append((px0 + 4 * pitch * S2, py0))
+    ax.plot(*zip(*pts), color="k", lw=0.7)
+    ax.plot([px0 - 4, px0 + 4 * pitch * S2 + 2], [py0, py0], color="#0050a0", lw=0.3, ls="--")
+    text(ax, px0 + 4 * pitch * S2 + 3, py0 + 1.5, "face plane Z = 0 (roots)", size=5.5, color="#0050a0")
+    dim(ax, (px0, py0 + 4), (px0 + pitch * S2, py0 + 4), f"pitch {pitch:.3f} at Ø{E.LEG_HUB_D}", off=(0, 3))
+    dim(ax, (px0 + 4 * pitch * S2 + 4, py0), (px0 + 4 * pitch * S2 + 4, py0 - hgt * S2), f"{hgt:.3f}",
+        off=(6, 0))
+    text(ax, px0 + 1.5 * pitch * S2, py0 - hgt * S2 - 1, f"{E.LEG_TOOTH_ANGLE:.0f}°", size=6, ha="center")
+    text(ax, px0 + 2 * pitch * S2, py0 + 13, f"DETAIL E — TOOTH PROFILE at hub rim (Ø{E.LEG_HUB_D}), 20:1",
+         size=7, weight="bold", ha="center")
+
+    tilt = math.degrees(math.atan(k))
+    spec = [
+        ["Number of teeth", f"{E.LEG_TEETH}  (CRITICAL — same as case bosses L1-L3, drawing EDX-TOP)"],
+        ["Angular pitch", f"{360 / E.LEG_TEETH:.3f}°, equally spaced, no clocking requirement"],
+        ["Tooth form", f"symmetric V, {E.LEG_TOOTH_ANGLE:.0f}° included, radial; exact negative of the case boss"],
+        ["Toothed annulus", f"Ø{2 * r0:.1f} to Ø{E.LEG_HUB_D} (to hub rim)"],
+        ["Roots", "straight radial lines IN the face plane Z = 0 (no slope)"],
+        ["Ridges", f"straight lines rising {tilt:.2f}° from the axis: {r0 * k:.3f} high at Ø{2 * r0:.1f}, "
+                   f"{hgt:.3f} at Ø{E.LEG_HUB_D}"],
+        ["Crest / root", "sharp, R0.1 max"],
+        ["Centre land", f"Ø{2 * r0:.1f} flat in the face plane Z = 0, around the Ø{E.LEG_HOLE_D} hole"],
+        ["Machining hint", f"turn/mill a {tilt:.2f}° cone on the face (Ø{2 * r0:.1f} to rim), then "
+                           f"{E.LEG_TEETH} radial passes of a 90° engraver, tip ON the face plane, "
+                           f"indexed {360 / E.LEG_TEETH:.0f}°. 3-axis, toothed face up."],
+    ]
+    y = table(ax, 225, 283, [("Hub teeth specification", 30), ("", 155)], spec, size=5.5, row_h=4.0)
+    feats = [
+        ["Hub", f"Ø{E.LEG_HUB_D} -0.1 x {E.LEG_HUB_L} long (face to back face), back edge chamfer "
+                f"{E.LEG_EDGE}x45°"],
+        ["Bore", f"Ø{E.LEG_HOLE_D} +0.1/0 THROUGH (M3 clearance, NO THREAD), on the pivot axis"],
+        ["Counterbore", f"Ø{E.LEG_CBORE[0]} +0.1/0 x {E.LEG_CBORE[1]} deep from the back face (spring seat)"],
+        ["Arm", f"{E.LEG_ARM_W} wide at hub tapering to {E.LEG_NECK_D}, {E.LEG_ARM_T} thick, flush with the "
+                "back face, long edges R1.5"],
+        ["Neck / spigot", f"Ø{E.LEG_NECK_D} to {y_sh:.1f} from axis; spigot Ø{E.LEG_SPIGOT[0]} -0.05 x "
+                          f"{E.LEG_SPIGOT[1]} for the foot cap, end chamfer 0.4"],
+        ["Length", f"{y_sh + E.LEG_SPIGOT[1]:.1f} axis to spigot end; {E.LEG_LEN:.0f} to foot tip with cap"],
+    ]
+    y = table(ax, 225, y - 4, [("Feature", 30), ("Specification", 155)], feats, size=5.5, row_h=4.0)
+    notes(ax, 225, y - 6, "GENERAL NOTES", [
+        f"Geometry per {part}.step. Dimensions not shown are taken from the STEP model.",
+        f"Material: {TOP_MATERIAL}.  QUANTITY: {LEG_QTY} pcs (3 per keyboard half; identical, not handed).",
+        "NO THREADS in this part. The stock ErgoDox EZ M3 spring thumbscrew passes through the Ø3.4 bore "
+        "into the M3 thread of the case boss.",
+        "Toothed face: no burrs; tooth count and 90° form are critical (the leg must click in every 10° step).",
+        "Break sharp edges 0.1-0.2 mm, except the tooth crests (0.1 max).",
+        f"Finish: {FINISH}; same colour as the case.",
+        "Foot cap ergodox_leg_cap: 3D print in TPU 95A (not machined), push onto the spigot.",
+    ], width=118)
+    title_block(ax, part, dwg, "1 of 1", "2.5:1, 6:1, 20:1", version, TOP_MATERIAL)
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
 def main(exports: str, order: str, version: str):
     os.makedirs(order, exist_ok=True)
     csv_rows = []
@@ -424,6 +541,17 @@ def main(exports: str, order: str, version: str):
                                          f"{r['y']:.3f}", "0.000", "-Z face", r["note"]])
             shutil.copy(step, os.path.join(order, part + ".step"))
             print(f"  {part}: drawing + STEP")
+    part = "ergodox_leg"
+    step = os.path.join(exports, part + ".step")
+    with PdfPages(os.path.join(order, part + ".pdf")) as pdf:
+        leg_sheet(pdf, import_step(step), part, "EDX-LEG", version)
+    shutil.copy(step, os.path.join(order, part + ".step"))
+    shutil.copy(os.path.join(exports, "ergodox_leg_cap.stl"), os.path.join(order, "ergodox_leg_cap.stl"))
+    csv_rows += [[part, "H1", f"Ø{E.LEG_HOLE_D} thru (M3 clearance)", "", "", "", "thru", "", "0.000", "0.000",
+                  "0.000", "+Z", "no thread"],
+                 [part, "CB1", f"counterbore Ø{E.LEG_CBORE[0]} x {E.LEG_CBORE[1]}", "", "", "",
+                  f"{E.LEG_CBORE[1]}", "", "0.000", "0.000", f"{E.LEG_HUB_L:.3f}", "-Z", "spring seat"]]
+    print(f"  {part}: drawing + STEP (qty {LEG_QTY}), ergodox_leg_cap.stl (print)")
     with open(os.path.join(order, "hole_table.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["part", "id", "thread_or_feature", "hand", "class", "tap_drill", "drill_depth",
