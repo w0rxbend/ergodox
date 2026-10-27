@@ -5,6 +5,11 @@ with STL and STEP archives.
 
 ## [Unreleased]
 
+### Changed
+
+- Build recipes moved from `make` to [`just`](https://github.com/casey/just): `justfile` replaces the
+  `Makefile` with the same recipe names. Override the interpreter with `just python=/path/to/python model`.
+
 ## [0.5.0] - 2026-10-27
 
 ### Added
@@ -18,7 +23,7 @@ with STL and STEP archives.
   - part info on hover;
   - STL downloads.
 
-  `make site` builds it into `_site/` from the exports, and `make serve` serves it locally. CI deploys
+  `just site` builds it into `_site/` from the exports, and `just serve` serves it locally. CI deploys
   it from `main`.
 - README: badges, viewer screenshot, build pipeline diagram.
 - Plate spacer (`ergodox_<side>_spacer`), a separate part:
@@ -71,7 +76,7 @@ with STL and STEP archives.
   - a thread table (size, right-hand, 6H, tap drill, depth, location);
   - the detent-boss sheet: 36 teeth, profile, section, specification;
   - tolerances, finish and cosmetic surfaces.
-- JLCCNC order package (`make order`, released as `*-jlccnc-order.zip`): STEP + PDF per part,
+- JLCCNC order package (`just order`, released as `*-jlccnc-order.zip`): STEP + PDF per part,
   `hole_table.csv`, and `ORDER_NOTES.md` with remarks in English and Chinese.
 - `docs/jlccnc-order.md`: the ordering guide and answers to likely engineering questions.
 

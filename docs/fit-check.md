@@ -5,7 +5,7 @@ your own keyboard before ordering aluminium parts.
 
 ## 1. PCB holes and outline (paper)
 
-1. Print `ergodox_right_fitcheck.dxf` at **100 %**. It is in the `-step.zip` release archive, or run `make model`.
+1. Print `ergodox_right_fitcheck.dxf` at **100 %**. It is in the `-step.zip` release archive, or run `just model`.
    Check the scale with a ruler: the key pitch is 19.05 mm.
 2. Lay your EZ right-hand PCB on the print. Check that:
    - the 8 circles on layer `SCREWS` fall on the PCB mounting holes, and

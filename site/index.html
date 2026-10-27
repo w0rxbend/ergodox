@@ -144,11 +144,11 @@
     <li><span class="n mono">04</span><h3>Assemble</h3><p>16 × M2.5 countersunk screws, 8 rubber feet, 6 legs with TPU caps and the stock EZ thumbscrews. <a href="https://github.com/w0rxbend/ergodox/blob/main/docs/machining.md#bill-of-materials-per-half">Bill of materials</a>.</p></li>
   </ol>
   <div class="code">
-    <div class="code-head mono">or build it yourself · Python 3.10–3.13</div>
+    <div class="code-head mono">or build it yourself · Python 3.10–3.13 + just</div>
 <pre class="mono"><span class="p">$</span> git clone https://github.com/w0rxbend/ergodox && cd ergodox
-<span class="p">$</span> make setup   <span class="c"># .venv + build123d</span>
-<span class="p">$</span> make model   <span class="c"># STEP, STL, fit-check DXF → exports/</span>
-<span class="p">$</span> make order   <span class="c"># PDF drawings + CNC order package</span></pre>
+<span class="p">$</span> just setup   <span class="c"># .venv + build123d</span>
+<span class="p">$</span> just model   <span class="c"># STEP, STL, fit-check DXF → exports/</span>
+<span class="p">$</span> just order   <span class="c"># PDF drawings + CNC order package</span></pre>
   </div>
   <p class="direct mono">Single STL files, straight from this page:
     <a href="models/right_top.stl" download>right_top</a> ·

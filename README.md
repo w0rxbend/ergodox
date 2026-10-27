@@ -72,9 +72,9 @@ STL files from the latest `main` build. You can:
 
 ```mermaid
 flowchart LR
-    A["cad/ergodox_case.py<br/>(every dimension is a named constant)"] -->|make model| B["STEP · STL · DXF"]
-    B -->|make order| C["PDF drawings<br/>+ JLCCNC order package"]
-    B -->|make site| D["3D viewer<br/>(GitHub Pages)"]
+    A["cad/ergodox_case.py<br/>(every dimension is a named constant)"] -->|just model| B["STEP · STL · DXF"]
+    B -->|just order| C["PDF drawings<br/>+ JLCCNC order package"]
+    B -->|just site| D["3D viewer<br/>(GitHub Pages)"]
     B --> E["3D-printed test fit"]
     E --> F["fit check against your PCB"]
     F --> C
@@ -101,21 +101,21 @@ Ready-made files are attached to every [GitHub release](../../releases):
 
 ## Build from source
 
-You need Python **3.10–3.13**. build123d/OCP has no wheels for 3.14 yet.
+You need Python **3.10–3.13** (build123d/OCP has no wheels for 3.14 yet) and [just](https://github.com/casey/just#installation).
 
 ```sh
-make setup      # creates .venv and installs requirements.txt
-make model      # writes exports/*.step, *.stl and the fit-check DXF
-make renders    # refreshes renders/*.png from the exports
-make order      # PDF drawings + order package in exports/order (needs model)
-make serve      # builds the microsite into _site/ and serves it on localhost:8000
-make help       # lists all targets
+just setup      # creates .venv and installs requirements.txt
+just model      # writes exports/*.step, *.stl and the fit-check DXF
+just renders    # refreshes renders/*.png from the exports
+just order      # PDF drawings + order package in exports/order (needs model)
+just serve      # builds the microsite into _site/ and serves it on localhost:8000
+just help       # lists all recipes
 ```
 
-`make model` prints a build report: screw-to-switch clearances, tent-leg wall checks, and each part's
+`just model` prints a build report: screw-to-switch clearances, tent-leg wall checks, and each part's
 mass, size and geometry validity. It exits non-zero if any part is not a single valid solid.
 
-To use another interpreter, run `make PYTHON=/path/to/python model`.
+To use another interpreter, run `just python=/path/to/python model`.
 
 ## Repository layout
 
