@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ErgoDox CNC Case</title>
+<meta name="description" content="A parametric, CNC-milled aluminium case for the ErgoDox EZ. Interactive 3D viewer, STEP/STL downloads and a ready-to-upload CNC order package.">
+<meta property="og:title" content="ErgoDox CNC Case">
+<meta property="og:description" content="Parametric aluminium case for the ErgoDox EZ, built in build123d. Spin it in your browser.">
+<meta property="og:image" content="renders/pair_top_iso.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='3' y='7' width='26' height='18' rx='3' fill='%23ff6a1a'/><g fill='%230d0f12'><rect x='7' y='11' width='4' height='4' rx='1'/><rect x='14' y='11' width='4' height='4' rx='1'/><rect x='21' y='11' width='4' height='4' rx='1'/><rect x='7' y='17' width='18' height='4' rx='1'/></g></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="#top"><span class="brand-mark"></span>ErgoDox<span class="dim">/</span>CNC</a>
+  <nav>
+    <a href="#viewer">Viewer</a>
+    <a href="#features">Features</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#build">Build it</a>
+    <a class="gh" href="https://github.com/w0rxbend/ergodox">GitHub ↗</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow mono">6061-T6 · 4 case parts · 6 legs · <span id="version">v—</span></p>
+    <h1>An aluminium case for the <em>ErgoDox&nbsp;EZ</em>, written in Python.</h1>
+    <p class="lede">A parametric two-piece case for CNC milling. It takes the stock EZ PCB, switches and
+      keycaps, and adds tent legs that click into place on toothed bosses. One
+      <a href="https://github.com/gumyr/build123d">build123d</a> script produces the STEP files for the shop,
+      the STL files for a test print, and PDF drawings for the order.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/w0rxbend/ergodox/releases/latest">Download latest release</a>
+      <a class="btn" href="#viewer">Spin the model ↓</a>
+    </div>
+  </div>
+</section>
+
+<section id="viewer" class="viewer-wrap">
+  <div class="viewer" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="loader" id="loader"><div class="bar"><span id="loadbar"></span></div><p class="mono" id="loadtext">loading models…</p></div>
+    <div class="tooltip mono" id="tooltip"></div>
+    <div class="hud mono" id="hud"></div>
+    <div class="hint mono">drag to orbit · right-drag to pan · scroll to zoom · click a part</div>
+
+    <aside class="panel" id="panel">
+      <div class="group">
+        <label class="cap">Scene</label>
+        <div class="seg" id="scenes">
+          <button data-scene="pair" class="on">Pair</button>
+          <button data-scene="right">Right</button>
+          <button data-scene="left">Left</button>
+          <button data-scene="leg">Leg</button>
+        </div>
+      </div>
+      <div class="group">
+        <label class="cap">Anodize</label>
+        <div class="swatches" id="finishes"></div>
+      </div>
+      <div class="group">
+        <label class="cap" for="explode">Explode <span class="val mono" id="explodeVal">0</span></label>
+        <input type="range" id="explode" min="0" max="1" step="0.01" value="0">
+      </div>
+      <div class="group">
+        <label class="cap" for="section">Section cut <span class="val mono" id="sectionVal">off</span></label>
+        <input type="range" id="section" min="0" max="1" step="0.005" value="0">
+      </div>
+      <div class="group" id="swingGroup">
+        <label class="cap" for="swing">Leg angle <span class="val mono" id="swingVal">90°</span></label>
+        <input type="range" id="swing" min="0" max="180" step="10" value="90">
+      </div>
+      <div class="group toggles">
+        <label><input type="checkbox" id="tLegs" checked> legs</label>
+        <label><input type="checkbox" id="tTop" checked> top</label>
+        <label><input type="checkbox" id="tSpacer" checked> spacer</label>
+        <label><input type="checkbox" id="tBottom" checked> bottom</label>
+        <label><input type="checkbox" id="tEdges" checked> edges</label>
+        <label><input type="checkbox" id="tSpin"> auto-rotate</label>
+      </div>
+      <div class="group row">
+        <button class="btn small" id="resetView">Reset view</button>
+        <button class="btn small" id="snap">Screenshot</button>
+      </div>
+    </aside>
+  </div>
+  <div class="parts" id="partlist"></div>
+</section>
+
+<section class="stats">
+  <div class="stat"><span class="num mono">194.4 × 168.0</span><span class="lbl">mm per half, 17.6 mm tall</span></div>
+  <div class="stat"><span class="num mono" id="massStat">≈ 357 g</span><span class="lbl">per half in 6061-T6</span></div>
+  <div class="stat"><span class="num mono">76</span><span class="lbl">switch cutouts, 14.00 +0.05 mm</span></div>
+  <div class="stat"><span class="num mono">36 × 10°</span><span class="lbl">detent teeth per leg mount</span></div>
+</section>
+
+<section id="features" class="features">
+  <h2>What's in the box</h2>
+  <div class="grid">
+    <article><h3>Exact key layout</h3><p>The switch positions, column stagger and the 25° thumb cluster come straight from the original ErgoDox KiCad PCB.</p></article>
+    <article><h3>Integrated plate</h3><p>A 1.5&nbsp;mm switch plate is milled into the top shell and sits in a 4&nbsp;mm key well. A separate 3&nbsp;mm spacer with an opening per switch fills the gap down to the PCB.</p></article>
+    <article><h3>Clamped PCB</h3><p>The PCB sits between bosses in the top and posts in the bottom tray, held by 8 × M2.5 countersunk screws on the stock hole pattern.</p></article>
+    <article><h3>Clicking tent legs</h3><p>A tapped M3 hole with a Ø10 boss carrying 36 radial V-teeth. The custom leg's hub is its exact negative, held by the stock EZ spring thumbscrew.</p></article>
+    <article><h3>Fits the real board</h3><p>Pockets for the electrolytic capacitor on each PCB, measured from photos. Openings for TRRS, USB, LEDs and reset, as on the EZ.</p></article>
+    <article><h3>Ready to order</h3><p>Every release ships STEP files plus A3 PDF drawings with thread tables and tooth specs, and order remarks in English and Chinese.</p></article>
+  </div>
+</section>
+
+<section id="gallery" class="gallery">
+  <h2>Renders</h2>
+  <div class="shots">
+    <figure><img loading="lazy" src="renders/pair_top_iso.png" alt="Both top shells, isometric"><figcaption>Both top shells</figcaption></figure>
+    <figure><img loading="lazy" src="renders/right_top_underside.png" alt="Right top shell underside"><figcaption>Top shell, underside: bosses, leg pads, capacitor pocket</figcaption></figure>
+    <figure><img loading="lazy" src="renders/right_bottom_tray.png" alt="Right bottom tray"><figcaption>Bottom tray with screw posts and foot recesses</figcaption></figure>
+    <figure><img loading="lazy" src="renders/spacer.png" alt="Plate spacer"><figcaption>Plate spacer: 3&nbsp;mm, one opening per switch</figcaption></figure>
+    <figure><img loading="lazy" src="renders/right_with_legs.png" alt="Right half with legs deployed"><figcaption>Legs deployed</figcaption></figure>
+    <figure><img loading="lazy" src="renders/leg_section.png" alt="Section through the leg mount"><figcaption>Section through the outer leg mount</figcaption></figure>
+    <figure><img loading="lazy" src="renders/leg_teeth.png" alt="Leg hub teeth"><figcaption>The leg's 36-tooth hub</figcaption></figure>
+    <figure class="wide"><img loading="lazy" src="renders/section.png" alt="Cross-sections through the case"><figcaption>Cross-sections: PCB clamped between top bosses and bottom posts</figcaption></figure>
+    <figure class="wide"><img loading="lazy" src="renders/overlay_on_photo.png" alt="Model outline overlaid on a photo of an ErgoDox EZ"><figcaption>The model overlaid on a photo of a real EZ</figcaption></figure>
+  </div>
+</section>
+
+<section id="build" class="build">
+  <h2>From script to metal</h2>
+  <ol class="steps">
+    <li><span class="n mono">01</span><h3>Print a test fit</h3><p>Grab the <span class="mono">-stl.zip</span> from the latest release and print the four case parts. Drop in your PCB and switches.</p></li>
+    <li><span class="n mono">02</span><h3>Check your board</h3><p>Print <span class="mono">ergodox_right_fitcheck.dxf</span> at 100&nbsp;% and work through the <a href="https://github.com/w0rxbend/ergodox/blob/main/docs/fit-check.md">fit-check list</a>.</p></li>
+    <li><span class="n mono">03</span><h3>Order the parts</h3><p>Upload the <span class="mono">-jlccnc-order.zip</span> parts with their PDF drawings. The <a href="https://github.com/w0rxbend/ergodox/blob/main/docs/jlccnc-order.md">order guide</a> has every form setting.</p></li>
+    <li><span class="n mono">04</span><h3>Assemble</h3><p>16 × M2.5 countersunk screws, 8 rubber feet, 6 legs with TPU caps and the stock EZ thumbscrews. <a href="https://github.com/w0rxbend/ergodox/blob/main/docs/machining.md#bill-of-materials-per-half">Bill of materials</a>.</p></li>
+  </ol>
+  <div class="code">
+    <div class="code-head mono">or build it yourself · Python 3.10–3.13</div>
+<pre class="mono"><span class="p">$</span> git clone https://github.com/w0rxbend/ergodox && cd ergodox
+<span class="p">$</span> make setup   <span class="c"># .venv + build123d</span>
+<span class="p">$</span> make model   <span class="c"># STEP, STL, fit-check DXF → exports/</span>
+<span class="p">$</span> make order   <span class="c"># PDF drawings + CNC order package</span></pre>
+  </div>
+  <p class="direct mono">Single STL files, straight from this page:
+    <a href="models/right_top.stl" download>right_top</a> ·
+    <a href="models/right_bottom.stl" download>right_bottom</a> ·
+    <a href="models/left_top.stl" download>left_top</a> ·
+    <a href="models/left_bottom.stl" download>left_bottom</a> ·
+    <a href="models/right_spacer.stl" download>right_spacer</a> ·
+    <a href="models/left_spacer.stl" download>left_spacer</a> ·
+    <a href="models/leg.stl" download>leg</a> ·
+    <a href="models/leg_cap.stl" download>leg_cap</a></p>
+</section>
+
+</main>
+
+<footer>
+  <p>GPL-3.0-or-later. Key and hole coordinates come from the original ErgoDox PCB by Fredrik Atmer.
+    "ErgoDox EZ" is a product of ZSA Technology Labs; this project is not affiliated with or endorsed by ZSA.</p>
+  <p class="mono"><a href="https://github.com/w0rxbend/ergodox">github.com/w0rxbend/ergodox</a></p>
+</footer>
+
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

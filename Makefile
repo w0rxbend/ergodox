@@ -7,7 +7,7 @@ RENDERS := renders
 PHOTO   := docs/photos/photo_15_2026-10-25_14-30-30.jpg
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
-.PHONY: all setup model renders order clean help
+.PHONY: all setup model renders order site serve clean help
 
 all: model renders ## Build CAD exports and preview renders
 
@@ -30,6 +30,7 @@ renders: ## Regenerate PNG previews in renders/ (needs exports)
 	$(PYTHON) tools/zrender.py $(RENDERS)/right_with_legs.png 1200 -60 -60 \
 		$(EXPORTS)/ergodox_right_assembly_with_legs.stl
 	$(PYTHON) tools/zrender.py $(RENDERS)/leg.png 900 35 30 $(EXPORTS)/ergodox_leg.stl $(EXPORTS)/ergodox_leg_cap.stl
+	$(PYTHON) tools/zrender.py $(RENDERS)/spacer.png 1000 -50 35 $(EXPORTS)/ergodox_right_spacer.stl
 	$(PYTHON) tools/zrender.py $(RENDERS)/leg_teeth.png 900 -150 20 $(EXPORTS)/ergodox_leg.stl
 	$(PYTHON) tools/section.py $(EXPORTS) $(RENDERS)/section.png
 	$(PYTHON) tools/leg_section.py $(EXPORTS) $(RENDERS)/leg_section.png
@@ -39,6 +40,12 @@ order: ## PDF drawings + JLCCNC order package in exports/order (needs exports)
 	rm -rf $(EXPORTS)/order
 	$(PYTHON) cad/drawings.py $(EXPORTS) $(EXPORTS)/order $(VERSION)
 	cp docs/jlccnc-order.md $(EXPORTS)/order/ORDER_NOTES.md
+
+site: ## GitHub Pages microsite with the 3D viewer in _site/ (needs exports)
+	$(PYTHON) tools/build_site.py $(EXPORTS) _site $(VERSION)
+
+serve: site ## Build the site and serve it on http://localhost:8000
+	cd _site && python3 -m http.server 8000
 
 clean: ## Remove Python caches
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

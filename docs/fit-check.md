@@ -44,6 +44,17 @@ leaves 1.5 mm under the top face (`CAP_SKIN`).
   The build report prints both pockets, and the build fails if a capacitor (plus 1 mm) doesn't fit its
   pocket or would touch a PCB boss.
 
+## 2b. Plate spacer
+
+The spacer (`ergodox_<side>_spacer.stl`) is a separate 3 mm sheet that fills the space between the
+plate and the PCB. It has a 15 mm opening around each switch, 0.5 mm clear of the 14 mm lower
+housing. It rests against the plate underside and stops **0.5 mm above the PCB**.
+
+- Check the PCB's top side between the switches: anything taller than 0.5 mm there hits the spacer.
+  Cut it out of the spacer or leave the spacer out.
+- In the test print, fit the spacer before the switches. The switches must still clip into the
+  plate, and the spacer must not press on the PCB when the screws are tight.
+
 ## 3. Tent/tilt legs
 
 The model reuses the stock legs and M3 thumbscrews. Before cutting, check the 3 items listed in

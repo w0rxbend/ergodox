@@ -12,7 +12,13 @@ Each half has two parts, joined at the PCB's bottom face:
   - the tent-leg mounts: an M3 tapped pad and a toothed Ø10 detent boss on the wall
   - the LED and reset holes, right half only
 - **Bottom** (`ergodox_<side>_bottom`): a tray with a 3 mm floor, low walls and posts that support the PCB.
+  Its front inner wall (main body and thumb cluster) is 1 mm thicker than the top's
+  (`BOTTOM_FRONT_INSET`), which closes the front gap around the PCB.
   It has countersunk M2.5 clearance holes and recesses for the rubber feet.
+- **Plate spacer** (`ergodox_<side>_spacer`): a separate 3 mm sheet between the plate and the PCB. It
+  covers the plate area, with a 15 mm opening around every switch and clearance around the screw
+  bosses and leg pads (`SPACER_*`). It rests against the plate underside and stops 0.5 mm above the PCB.
+  It can be 3D-printed (PETG, or TPU/foam for damping) or milled.
 
 The left half is the right half mirrored about the YZ plane.
 
@@ -45,6 +51,7 @@ model frame, which is centred near the origin with y pointing away from the user
 | **7.0** | parting plane = PCB bottom face |
 | 7.0 – 8.6 | PCB (1.6 mm) |
 | 8.6 – 12.1 | top bosses clamp the PCB; switch housings |
+| 9.1 – 12.1 | plate spacer (separate part), 0.5 mm above the PCB |
 | 12.1 – 13.6 | integrated plate (1.5 mm) |
 | 13.6 – 17.6 | key well (4 mm) |
 | 14.6 – 17.6 | 3 mm skin over the back bezel. The pocket under it gives 6 mm above the PCB for the jacks and chips. |

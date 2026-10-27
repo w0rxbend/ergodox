@@ -16,8 +16,7 @@
 
 ## Top shell: 3 setups
 
-1. **Underside up.** Mill the main cavity, the relief pockets, the bosses, and the M2.5 tap drill holes
-   (Ø2.05, 6 mm deep). The jack notches open towards the parting plane, so a vertical end mill cuts them in this setup.
+1. **Underside up.** Mill the main cavity, the relief pockets, the bosses, and the M2.5 tap drill holes (Ø2.05, 6 mm deep). The jack notches open towards the parting plane, so a vertical end mill cuts them in this setup.
 2. **Top up.** Mill the key well, then the switch cutouts through the plate. The cutouts are 14.0 mm square
    with R 0.5 corners and need a Ø1 mm tool. Set `DOGBONES = True` if the shop prefers dog-bones.
    Then cut the LED holes (Ø1.8), the reset hole (Ø1.5), the top-edge fillet (R 1.5), the parting chamfer

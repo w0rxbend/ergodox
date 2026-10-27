@@ -66,6 +66,7 @@ CASE_X_OUT = 210.6       # outer edge
 CASE_Y_TOP = 27.1        # back edge (1.5 mm more room for the jacks and back-strip parts)
 CASE_Y_BOT = 158.6       # front edge of the main body
 THUMB_MARGIN = 5.5       # case margin around thumb key cells
+BOTTOM_FRONT_INSET = 1.0 # bottom tray only: front inner walls (main + thumb) 1 mm closer to the PCB
 R_TOP_CORNERS = 10.0
 R_FRONT_OUTER = 12.0
 R_THUMB = 8.0
@@ -183,6 +184,13 @@ CAP_H = 6.5              # max part height above the PCB top (lying body + margi
 CAP_CLEAR = 1.0          # min clearance around it inside the pocket
 CAP_SKIN = 1.5
 
+# Plate spacer: a separate part (ergodox_<side>_spacer) between the plate and the PCB, under the
+# plate island (WALL / 2 + 0.5 outside the key well), with an opening around every switch.
+# It sits against the plate underside and stops SPACER_GAP above the PCB.
+SPACER_T = 3.0           # thickness
+SPACER_HOLE = 15.0       # opening per switch: the 14.0 lower housing + 2 x 0.5
+SPACER_CLEAR = 0.5       # to the case walls, screw bosses and leg pads
+
 # Tent leg positions, as on the stock EZ (measured from photos, ±2 mm)
 LEG_MAIN_Y = 64.0        # outer and inner main walls
 LEG_THUMB_V = 0.56       # along the thumb-cluster end wall, in key units
@@ -208,15 +216,16 @@ def cad_rot(deg_screen: float) -> float:
 # --------------------------------------------------------------------------
 # 2D geometry
 # --------------------------------------------------------------------------
-def outline_face() -> Face:
-    """Outer case outline with filleted corners."""
-    x0, y0 = P(CASE_X_IN, CASE_Y_BOT)
+def outline_face(front_inset: float = 0.0) -> Face:
+    """Outer case outline with filleted corners. front_inset moves the front edges of the main
+    body and the thumb block inwards (used for the bottom tray's inner wall)."""
+    x0, y0 = P(CASE_X_IN, CASE_Y_BOT - front_inset)
     x1, y1 = P(CASE_X_OUT, CASE_Y_TOP)
     main = Pos((x0 + x1) / 2, (y0 + y1) / 2) * Rectangle(x1 - x0, y1 - y0)
 
     # Thumb block: key cells + margin, extended towards the main body
     u0, u1 = -0.5 * PITCH - THUMB_MARGIN, 2.5 * PITCH + 60.0
-    v0, v1 = -0.5 * PITCH - THUMB_MARGIN, 2.5 * PITCH + THUMB_MARGIN
+    v0, v1 = -0.5 * PITCH - THUMB_MARGIN, 2.5 * PITCH + THUMB_MARGIN - front_inset
     cu, cv = (u0 + u1) / 2 / PITCH, (v0 + v1) / 2 / PITCH
     cx, cy = P(*thumb_pt(cu, cv))
     thumb = Pos(cx, cy) * Rot(0, 0, THUMB_ANGLE) * Rectangle(u1 - u0, v1 - v0)
@@ -476,6 +485,46 @@ def cap_pocket(right: bool) -> Face:
     return next(f for f in s.faces() if f.is_inside(c))
 
 
+def spacer_face() -> Sketch:
+    """Spacer outline (part frame, right half): the plate island inside the wall, minus an
+    opening per switch, the PCB screw bosses and the tent-leg pads, each with SPACER_CLEAR."""
+    inner = offset(outline_face(), -WALL - SPACER_CLEAR, kind=Kind.ARC).faces()[0]
+    s = Sketch() + well_face(extra=WALL / 2 + 0.5)
+    s &= inner
+    for kx, ky, w, h, rot in KEYS:
+        s -= Pos(*P(kx, ky)) * Rot(0, 0, cad_rot(rot)) * RectangleRounded(SPACER_HOLE, SPACER_HOLE, TOOL_R)
+    for sx, sy in SCREWS:
+        s -= Pos(*P(sx, sy)) * Circle(boss_radius(sx, sy) + SPACER_CLEAR)
+    for (px, py), (nx, ny) in leg_mounts():
+        d = WALL + leg_pad_depth(px, py, nx, ny) + SPACER_CLEAR
+        s -= _leg_frame(px, py, nx, ny, Pos(d / 2, 0) * Rectangle(d, LEG_PAD[0] + 2 * SPACER_CLEAR))
+    return s
+
+
+def build_spacer() -> Solid:
+    z1 = Z_PLATE_BOT
+    return prism(spacer_face(), z1 - SPACER_T, z1)
+
+
+def spacer_check(spacer: Solid):
+    """The spacer must clear the PCB and keep every switch opening free."""
+    gap = Z_PLATE_BOT - SPACER_T - Z_PCB_TOP
+    if gap < 0:
+        sys.exit(f"plate spacer is {-gap:.2f} mm too thick for the plate-to-PCB gap")
+    for kx, ky, w, h, rot in KEYS:
+        a = math.radians(cad_rot(rot))
+        cx, cy = P(kx, ky)
+        r = SPACER_HOLE / 2 - 0.05
+        c = r - TOOL_R * (1 - 1 / math.sqrt(2)) - 0.05   # inside the rounded corners
+        for u, v in ((-c, -c), (-c, c), (c, -c), (c, c), (0, -r), (0, r), (-r, 0), (r, 0)):
+            q = Vector(cx + u * math.cos(a) - v * math.sin(a), cy + u * math.sin(a) + v * math.cos(a),
+                       Z_PLATE_BOT - SPACER_T / 2)
+            if spacer.is_inside(q):
+                sys.exit(f"plate spacer covers the switch at ({kx:.1f},{ky:.1f})")
+    print(f"  plate spacer: {SPACER_T} thick, Z {Z_PLATE_BOT - SPACER_T:.1f}-{Z_PLATE_BOT:.1f}, "
+          f"{gap:.1f} mm above the PCB, {SPACER_HOLE} openings, {len(spacer.solids())} piece(s)")
+
+
 def cap_check():
     """Each capacitor (plus CAP_CLEAR) must sit inside its pocket, clear of the PCB bosses."""
     ceil = Z_TOP - CAP_SKIN
@@ -594,7 +643,7 @@ def build_top(right: bool) -> Solid:
 
 def build_bottom(right: bool) -> Solid:
     outline = outline_face()
-    inner = offset(outline, -WALL, kind=Kind.ARC).faces()[0]
+    inner = offset(outline_face(BOTTOM_FRONT_INSET), -WALL, kind=Kind.ARC).faces()[0]
     body = prism(outline, 0, Z_SPLIT)
     body = fillet(body.edges().group_by(Axis.Z)[0], 1.0)
     body = chamfer(body.edges().group_by(Axis.Z)[-1], SEAM_CHAMFER)
@@ -732,15 +781,17 @@ def main(outdir: str):
         bb = s.bounding_box()
         print(f"{name:13s} vol {s.volume/1000:7.1f} cm3  mass(6061) {s.volume*2.70e-3:6.0f} g  "
               f"bbox {bb.size.X:.1f} x {bb.size.Y:.1f} x {bb.size.Z:.1f}  valid={s.is_valid}  solids={len(s.solids())}")
+    spacer = build_spacer()
+    spacer_check(spacer)
     leg, cap = build_leg(), build_leg_cap()
-    for name, s in (("leg", leg), ("leg_cap", cap)):
+    for name, s in (("right_spacer", spacer), ("left_spacer", mirror_x(spacer)), ("leg", leg), ("leg_cap", cap)):
         export_step(s, os.path.join(outdir, f"ergodox_{name}.step"))
         export_stl(s, os.path.join(outdir, f"ergodox_{name}.stl"), tolerance=0.01, angular_tolerance=0.1)
         bb = s.bounding_box()
         print(f"{name:13s} vol {s.volume/1000:7.2f} cm3  mass(6061) {s.volume*2.70e-3:6.1f} g  "
               f"bbox {bb.size.X:.1f} x {bb.size.Y:.1f} x {bb.size.Z:.1f}  valid={s.is_valid}  solids={len(s.solids())}")
-    parts_ok = dict(parts, leg=leg, leg_cap=cap)
-    asm = Compound([parts["right_top"], parts["right_bottom"], *leg_parts()])
+    parts_ok = dict(parts, spacer=spacer, leg=leg, leg_cap=cap)
+    asm = Compound([parts["right_top"], parts["right_bottom"], spacer, *leg_parts()])
     export_step(asm, os.path.join(outdir, "ergodox_right_assembly_with_legs.step"))
     export_stl(asm, os.path.join(outdir, "ergodox_right_assembly_with_legs.stl"), tolerance=0.05)
     bad = [name for name, s in parts_ok.items() if not s.is_valid or len(s.solids()) != 1]

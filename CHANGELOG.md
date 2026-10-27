@@ -3,6 +3,39 @@
 This project uses [Semantic Versioning](https://semver.org/). Each `v*` tag publishes a GitHub release
 with STL and STEP archives.
 
+## [Unreleased]
+
+## [0.5.0] - 2026-10-27
+
+### Added
+
+- GitHub Pages microsite at https://w0rxbend.github.io/ergodox/ with an interactive three.js viewer:
+  - pair, half and leg scenes;
+  - anodize colours;
+  - explode;
+  - section cut;
+  - leg detent angle;
+  - part info on hover;
+  - STL downloads.
+
+  `make site` builds it into `_site/` from the exports, and `make serve` serves it locally. CI deploys
+  it from `main`.
+- README: badges, viewer screenshot, build pipeline diagram.
+- Plate spacer (`ergodox_<side>_spacer`), a separate part:
+  - a 3 mm sheet between the plate and the PCB (Z 9.1–12.1), stopping 0.5 mm above the PCB;
+  - covers the plate area, with a 15 mm opening around every switch;
+  - 0.5 mm clear of the walls, the PCB screw bosses and the tent-leg pads.
+
+  It can be 3D-printed (PETG, or TPU for damping) or milled. The build checks the PCB gap and every
+  switch opening. It is included in the assembly preview, the STL/STEP archives and the viewer.
+
+### Changed
+
+- Bottom tray: the inner wall along the front edge, on the main body and the thumb cluster, is 1 mm
+  closer to the PCB (`BOTTOM_FRONT_INSET`). The outside of the case is unchanged. In the printed
+  test fit (left half), the gap between the PCB and the front wall was about 1 mm too large. The top
+  shell is unchanged, and each bottom tray is now about 213 g.
+
 ## [0.4.0] - 2026-10-26
 
 ### Added
