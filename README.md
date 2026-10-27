@@ -92,8 +92,11 @@ Ready-made files are attached to every [GitHub release](../../releases):
 - `ergodox-cnc-case-<version>-stl.zip` contains the STL files (4 case parts, 2 plate spacers, the leg and its foot cap), for a 3D-printed test fit.
 - `ergodox-cnc-case-<version>-step.zip` contains the STEP files (case parts and leg) and `ergodox_right_fitcheck.dxf`, for CAM or a CNC shop.
 - `ergodox-cnc-case-<version>-jlccnc-order.zip` is a ready-to-upload order package: each STEP plus a PDF
-  manufacturing drawing (threads, detent teeth, tolerances, finish) and a hole table. See
-  [docs/jlccnc-order.md](docs/jlccnc-order.md).
+  manufacturing drawing (threads, detent teeth, tolerances, finish) and a hole table. It holds the
+  4 case parts and the leg; order the leg in **quantity 6**, one part for all positions. The TPU foot
+  cap is an STL to print yourself. [docs/jlccnc-order.md](docs/jlccnc-order.md) has every form setting,
+  including the customs category: the case parts go under Cavity & Enclosure and the leg under
+  Aluminum Alloy Bracket (HS 761699).
 
 > [!WARNING]
 > The case outline was measured from photos (±1–2 mm). Work through
@@ -139,7 +142,7 @@ exports/                 (git-ignored) generated STEP/STL/DXF
 | [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 detent boss, the custom leg, measurements, what to check |
 | [docs/fit-check.md](docs/fit-check.md) | What to measure on your keyboard before machining |
 | [docs/machining.md](docs/machining.md) | Bill of materials, setups, tooling, finishing |
-| [docs/jlccnc-order.md](docs/jlccnc-order.md) | Ordering from JLCCNC: form settings, remarks to paste (EN/中文), answers to engineering questions |
+| [docs/jlccnc-order.md](docs/jlccnc-order.md) | Ordering from JLCCNC: form settings and customs categories, remarks to paste (EN/中文), answers to engineering questions |
 | [docs/sources.md](docs/sources.md) | References and prior art |
 
 ## Previews
