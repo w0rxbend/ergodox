@@ -5,6 +5,11 @@ with STL and STEP archives.
 
 ## [Unreleased]
 
+### Changed
+
+- Order guide: Product Desc (customs category) for each part. The leg goes under Aluminum Alloy Bracket
+  (HS 761699), not Crank Arm.
+
 ## [0.5.1] - 2026-10-27
 
 ### Changed

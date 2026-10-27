@@ -42,6 +42,10 @@ They contain no thread geometry, which is why each part needs its PDF drawing.
 | Tolerance | Standard (ISO 2768-m); the critical values are on the drawing | Standard | Standard; the teeth are on the drawing |
 | Inspection | Standard | Standard | Standard |
 | Quantity | 1 each (1 keyboard). Also ask for a price on 2 | 1 each | **6** (ask for 7–8 to have spares) |
+| Product Desc (customs) | Cavity & Enclosure Category: the enclosure/housing entry | Same as the top | Irregular shape Category → **Aluminum Alloy Bracket (HS 761699)** |
+
+The leg is a passive support, so it is a bracket. Don't pick "Aluminum Alloy Crank Arm (HS 848310)":
+that code is for transmission parts, and customs may query it.
 
 If the form wants one thread type per part, choose M2.5 and give the M3 holes in the remarks; the
 drawing lists them all.
