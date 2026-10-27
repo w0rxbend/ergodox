@@ -131,6 +131,7 @@ renders/                 preview images used in the docs
 docs/                    design notes, fit check, machining guide, sources
 docs/photos/             reference photos of a stock ErgoDox EZ
 .github/workflows/       CI: build on every push, deploy the site from main, publish a release on v* tags
+justfile                 build recipes: setup, model, renders, order, site, serve (run `just help`)
 exports/                 (git-ignored) generated STEP/STL/DXF
 ```
 
