@@ -5,6 +5,8 @@ with STL and STEP archives.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-27
+
 ### Changed
 
 - Build recipes moved from `make` to [`just`](https://github.com/casey/just): `justfile` replaces the
