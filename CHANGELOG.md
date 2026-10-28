@@ -5,6 +5,8 @@ with STL and STEP archives.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-28
+
 ### Changed
 
 - The order archive is now `ergodox-cnc-case-<version>-cnc-order.zip` (was `-jlccnc-order.zip`): the
