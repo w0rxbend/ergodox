@@ -3,9 +3,9 @@
 Manufacturing drawings (A3 PDF) and the CNC order package for the ErgoDox case.
 
 For every part it writes <part>.pdf next to <part>.step: views generated from the
-STEP file, the thread / hole table, general notes and, for the top parts, the detent
-boss sheet (tooth count, profile, section). The tent leg gets its own sheet (hub teeth,
-the negative of the boss). Also writes hole_table.csv.
+STEP file, the thread / hole table, general notes and, for the top parts, the leg boss
+sheet (flat face, or tooth count and profile with DETENT_TEETH, plus a section). The tent
+leg gets its own sheet (hub bearing face or teeth). Also writes hole_table.csv.
 
 Usage: drawings.py <exports_dir> <order_dir> [version]
 The STEP files must already exist in <exports_dir> (run ergodox_case.py first).
@@ -73,7 +73,7 @@ def top_threads(right: bool) -> list[dict]:
             id=f"L{j + 1}", thread="M3x0.5", hand="RH", cls="6H", drill=E.LEG_TAP_D, depth=round(depth, 1),
             full=round(depth - 0.5, 1), x=m * fx, y=fy, z=E.LEG_Z,
             direction=f"normal to wall, into part ({-m * nx:+.3f}, {-ny:+.3f}, 0)",
-            note="in toothed detent boss, see sheet 2"))
+            note=f"in {'toothed detent' if E.DETENT_TEETH else 'flat'} leg boss, see sheet 2"))
     return rows
 
 
@@ -236,10 +236,14 @@ def top_sheet1(pdf, shape, right, part, dwg, version):
         "Must not break through or leave witness marks on the top surface.",
         "Switch cutouts (38x): 14.00 +0.05/-0 square, corner R0.5 max. Plate thickness 1.50 ±0.05. "
         "Plate flatness 0.2 over the part.",
-        "Detent bosses L1-L3 carry 36 radial teeth: see sheet 2. Tooth count is critical.",
-        "Cosmetic surfaces: top face, key well, outer walls, detent bosses: no tool marks, scratches or "
+        (f"Detent bosses L1-L3 carry {E.LEG_TEETH} radial teeth: see sheet 2. Tooth count is critical."
+         if E.DETENT_TEETH else
+         "Leg bosses L1-L3: plain Ø10 bosses with a FLAT face (no teeth), see sheet 2."),
+        "Cosmetic surfaces: top face, key well, outer walls, leg bosses: no tool marks, scratches or "
         "clamp marks. Inside (cavity) surfaces are non-cosmetic.",
-        "Break sharp edges 0.1-0.2 mm, except detent tooth crests and switch-cutout edges (0.1 max).",
+        ("Break sharp edges 0.1-0.2 mm, except detent tooth crests and switch-cutout edges (0.1 max)."
+         if E.DETENT_TEETH else
+         "Break sharp edges 0.1-0.2 mm, except switch-cutout edges (0.1 max)."),
         f"Finish: {FINISH}. Mask threads during anodizing, or re-tap after anodizing.",
     ], width=118)
     title_block(ax, part, dwg, "1 of 2", "1:1", version, TOP_MATERIAL)
@@ -247,81 +251,9 @@ def top_sheet1(pdf, shape, right, part, dwg, version):
     plt.close(fig)
 
 
-def top_sheet2(pdf, shape, right, part, dwg, version):
-    fig, ax = new_sheet()
-    rows = [r for r in top_threads(right) if r["id"].startswith("L")]
-    # elevations
-    for view, cy, title in (("+X", 262, "VIEW FROM +X"), ("-X", 222, "VIEW FROM −X")):
-        to = place_view(ax, shape, view, 115, cy, 1.0)
-        text(ax, 20, cy + 16, f"{title} — scale 1:1", size=7, weight="bold")
-        for r in rows:
-            nx = -float(r["direction"].split("(")[1].split(",")[0])     # outward normal x
-            if (view == "+X" and nx > 0.5) or (view == "-X" and nx < -0.3):
-                label(ax, to(r["x"], r["y"], r["z"]), r["id"], dx=7, dy=9)
-
-    # detail: boss face, 5:1
-    s = 5.0
-    cx, cy = 70, 120
-    r1, r0 = E.LEG_BOSS_D / 2, E.LEG_TOOTH_R0
-    ax.add_patch(MCircle((cx, cy), r1 * s, fill=False, lw=0.8))
-    ax.add_patch(MCircle((cx, cy), r0 * s, fill=False, lw=0.6))
-    ax.add_patch(MCircle((cx, cy), E.LEG_TAP_D / 2 * s, fill=False, lw=0.6))
-    th = [math.radians(a) for a in range(0, 271, 6)]                     # 3/4 thread arc
-    ax.plot([cx + 1.5 * s * math.cos(t) for t in th], [cy + 1.5 * s * math.sin(t) for t in th], color="k", lw=0.3)
-    for i in range(E.LEG_TEETH):
-        a = 2 * math.pi * i / E.LEG_TEETH
-        ax.plot([cx + r0 * s * math.cos(a), cx + r1 * s * math.cos(a)],
-                [cy + r0 * s * math.sin(a), cy + r1 * s * math.sin(a)], color="k", lw=0.35)        # crest
-        b = a + math.pi / E.LEG_TEETH
-        ax.plot([cx + r0 * s * math.cos(b), cx + r1 * s * math.cos(b)],
-                [cy + r0 * s * math.sin(b), cy + r1 * s * math.sin(b)], color="0.5", lw=0.25)      # root
-    a10 = 2 * math.pi / E.LEG_TEETH
-    for a in (0, a10):
-        ax.plot([cx, cx + (r1 + 3) * s * math.cos(a)], [cy, cy + (r1 + 3) * s * math.sin(a)],
-                color="#0050a0", lw=0.3, ls="--")
-    text(ax, cx + (r1 + 3.2) * s, cy + 2, f"{360 / E.LEG_TEETH:.0f}° pitch", size=6, color="#0050a0", va="center")
-    dim(ax, (cx - r1 * s, cy - r1 * s - 5), (cx + r1 * s, cy - r1 * s - 5), f"Ø{E.LEG_BOSS_D:.1f} ±0.1")
-    dim(ax, (cx - r0 * s, cy - 4), (cx + r0 * s, cy - 4), f"Ø{2 * r0:.1f}", size=5)
-    text(ax, cx, cy + r1 * s + 9, f"DETAIL A — DETENT BOSS L1-L3, face view, scale 5:1  ({E.LEG_TEETH} TEETH)",
-         size=7, weight="bold", ha="center")
-    ax.plot([cx + 1.2 * s * 0.7, cx - 9 * s * 0.7 - 6], [cy + 1.2 * s * 0.7, cy + r1 * s + 2], color="k", lw=0.3)
-    text(ax, cx - 9 * s * 0.7 - 7, cy + r1 * s + 2, "M3x0.5-6H RH\ntap drill Ø2.5", size=5.5, va="center",
-         ha="right")
-
-    # section B-B through boss axis, 5:1 (wall-local: u = depth into part, v = Z - LEG_Z)
-    ox, oy = 165, 110
-    pad_d = E.LEG_PAD[1]
-
-    def P2(u, v):
-        return ox + u * s, oy + v * s
-    zr = lambda z: z - E.LEG_Z  # noqa: E731
-    hatch = dict(fc="#e8ecf2", ec="k", lw=0.6, hatch="////")
-    ax.add_patch(MPoly([P2(0, zr(E.Z_SPLIT)), P2(E.WALL, zr(E.Z_SPLIT)), P2(E.WALL, zr(E.Z_TOP)),
-                        P2(0, zr(E.Z_TOP))], closed=True, **hatch))
-    ax.add_patch(MPoly([P2(E.WALL, zr(E.Z_PCB_TOP + 0.4)), P2(E.WALL + pad_d, zr(E.Z_PCB_TOP + 0.4)),
-                        P2(E.WALL + pad_d, zr(E.Z_POCKET_CEIL)), P2(E.WALL, zr(E.Z_POCKET_CEIL))],
-                       closed=True, **hatch))
+def _boss_teeth_spec(ax, rows, r0):
+    """Detail C (tooth profile) and the detent teeth table; returns the table bottom."""
     r1 = E.LEG_BOSS_D / 2
-    ax.add_patch(MPoly([P2(-E.LEG_BOSS_H, -r1), P2(0, -r1), P2(0, r1), P2(-E.LEG_BOSS_H, r1)], closed=True, **hatch))
-    depth = max(r["depth"] for r in rows)
-    ax.add_patch(MRect(P2(-E.LEG_BOSS_H, -E.LEG_TAP_D / 2), depth * s, E.LEG_TAP_D * s, fc="white", ec="k", lw=0.5))
-    for v in (-1.5, 1.5):
-        ax.plot(*zip(P2(-E.LEG_BOSS_H, v), P2(-E.LEG_BOSS_H + depth - 0.5, v)), color="k", lw=0.3)
-    ax.plot(*zip(P2(-E.LEG_BOSS_H - 2, 0), P2(E.WALL + pad_d + 1, 0)), color="#0050a0", lw=0.3, ls="-.")
-    dim(ax, P2(-E.LEG_BOSS_H, r1 + 1.6), P2(0, r1 + 1.6), f"{E.LEG_BOSS_H} ±0.05", off=(0, 3.5))
-    dim(ax, P2(-E.LEG_BOSS_H - 2, -r1), P2(-E.LEG_BOSS_H - 2, r1), f"Ø{E.LEG_BOSS_D:.0f}", off=(-5, 0))
-    dim(ax, P2(0, zr(E.Z_SPLIT) - 1.2), P2(E.WALL, zr(E.Z_SPLIT) - 1.2), f"wall {E.WALL:.0f}", off=(0, -3))
-    dim(ax, P2(-E.LEG_BOSS_H, zr(E.Z_SPLIT) - 3.4), P2(-E.LEG_BOSS_H + depth, zr(E.Z_SPLIT) - 3.4),
-        f"drill depth {min(r['depth'] for r in rows)}-{depth} per table", off=(0, -3))
-    text(ax, ox + (E.WALL + pad_d / 2) * s, oy + zr(E.Z_PCB_TOP + 0.4) * s - 2, f"thread axis (dash-dot): "
-         f"Z = {E.LEG_Z} in STEP", size=5.5, color="#0050a0", ha="center")
-    text(ax, ox + (E.WALL + pad_d / 2) * s, oy + zr(E.Z_POCKET_CEIL) * s + 2,
-         "pad behind wall\n(depth 3.5-6, see STEP)", size=5.5, ha="center", va="bottom")
-    text(ax, ox - E.LEG_BOSS_H * s, oy + zr(E.Z_TOP) * s + 13, "outer wall face", size=5.5, ha="center")
-    ax.plot(*zip(P2(0, zr(E.Z_TOP) + 2.2), P2(0, zr(E.Z_TOP))), color="k", lw=0.3)
-    text(ax, ox + 15, oy + (zr(E.Z_TOP) + 7) * s, "SECTION B-B through boss axis, scale 5:1 (schematic)",
-         size=7, weight="bold", ha="center")
-
     # tooth profile, 20:1, at the boss rim
     k = math.tan(math.pi / E.LEG_TEETH) / math.tan(math.radians(E.LEG_TOOTH_ANGLE) / 2)
     pitch = 2 * math.pi * r1 / E.LEG_TEETH
@@ -363,13 +295,110 @@ def top_sheet2(pdf, shape, right, part, dwg, version):
         ["Mating part", "custom leg ergodox_leg (drawing EDX-LEG, conjugate teeth) + stock M3 spring thumbscrew"],
     ]
     yb = table(ax, 225, 182, [("Detent teeth specification", 38), ("", 147)], spec, size=5.6, row_h=4.0)
+    return yb
+
+
+def top_sheet2(pdf, shape, right, part, dwg, version):
+    fig, ax = new_sheet()
+    rows = [r for r in top_threads(right) if r["id"].startswith("L")]
+    # elevations
+    for view, cy, title in (("+X", 262, "VIEW FROM +X"), ("-X", 222, "VIEW FROM −X")):
+        to = place_view(ax, shape, view, 115, cy, 1.0)
+        text(ax, 20, cy + 16, f"{title} — scale 1:1", size=7, weight="bold")
+        for r in rows:
+            nx = -float(r["direction"].split("(")[1].split(",")[0])     # outward normal x
+            if (view == "+X" and nx > 0.5) or (view == "-X" and nx < -0.3):
+                label(ax, to(r["x"], r["y"], r["z"]), r["id"], dx=7, dy=9)
+
+    # detail: boss face, 5:1
+    s = 5.0
+    cx, cy = 70, 120
+    r1, r0 = E.LEG_BOSS_D / 2, E.LEG_TOOTH_R0
+    ax.add_patch(MCircle((cx, cy), r1 * s, fill=False, lw=0.8))
+    if E.DETENT_TEETH:
+        ax.add_patch(MCircle((cx, cy), r0 * s, fill=False, lw=0.6))
+    ax.add_patch(MCircle((cx, cy), E.LEG_TAP_D / 2 * s, fill=False, lw=0.6))
+    th = [math.radians(a) for a in range(0, 271, 6)]                     # 3/4 thread arc
+    ax.plot([cx + 1.5 * s * math.cos(t) for t in th], [cy + 1.5 * s * math.sin(t) for t in th], color="k", lw=0.3)
+    for i in range(E.LEG_TEETH if E.DETENT_TEETH else 0):
+        a = 2 * math.pi * i / E.LEG_TEETH
+        ax.plot([cx + r0 * s * math.cos(a), cx + r1 * s * math.cos(a)],
+                [cy + r0 * s * math.sin(a), cy + r1 * s * math.sin(a)], color="k", lw=0.35)        # crest
+        b = a + math.pi / E.LEG_TEETH
+        ax.plot([cx + r0 * s * math.cos(b), cx + r1 * s * math.cos(b)],
+                [cy + r0 * s * math.sin(b), cy + r1 * s * math.sin(b)], color="0.5", lw=0.25)      # root
+    if E.DETENT_TEETH:
+        a10 = 2 * math.pi / E.LEG_TEETH
+        for a in (0, a10):
+            ax.plot([cx, cx + (r1 + 3) * s * math.cos(a)], [cy, cy + (r1 + 3) * s * math.sin(a)],
+                    color="#0050a0", lw=0.3, ls="--")
+        text(ax, cx + (r1 + 3.2) * s, cy + 2, f"{360 / E.LEG_TEETH:.0f}° pitch", size=6, color="#0050a0",
+             va="center")
+        dim(ax, (cx - r0 * s, cy - 4), (cx + r0 * s, cy - 4), f"Ø{2 * r0:.1f}", size=5)
+    dim(ax, (cx - r1 * s, cy - r1 * s - 5), (cx + r1 * s, cy - r1 * s - 5), f"Ø{E.LEG_BOSS_D:.1f} ±0.1")
+    text(ax, cx, cy + r1 * s + 9, f"DETAIL A — DETENT BOSS L1-L3, face view, scale 5:1  ({E.LEG_TEETH} TEETH)"
+         if E.DETENT_TEETH else "DETAIL A — LEG BOSS L1-L3, face view, scale 5:1  (FLAT FACE, NO TEETH)",
+         size=7, weight="bold", ha="center")
+    ax.plot([cx + 1.2 * s * 0.7, cx - 9 * s * 0.7 - 6], [cy + 1.2 * s * 0.7, cy + r1 * s + 2], color="k", lw=0.3)
+    text(ax, cx - 9 * s * 0.7 - 7, cy + r1 * s + 2, "M3x0.5-6H RH\ntap drill Ø2.5", size=5.5, va="center",
+         ha="right")
+
+    # section B-B through boss axis, 5:1 (wall-local: u = depth into part, v = Z - LEG_Z)
+    ox, oy = 165, 110
+    pad_d = E.LEG_PAD[1]
+
+    def P2(u, v):
+        return ox + u * s, oy + v * s
+    zr = lambda z: z - E.LEG_Z  # noqa: E731
+    hatch = dict(fc="#e8ecf2", ec="k", lw=0.6, hatch="////")
+    ax.add_patch(MPoly([P2(0, zr(E.Z_SPLIT)), P2(E.WALL, zr(E.Z_SPLIT)), P2(E.WALL, zr(E.Z_TOP)),
+                        P2(0, zr(E.Z_TOP))], closed=True, **hatch))
+    ax.add_patch(MPoly([P2(E.WALL, zr(E.Z_PCB_TOP + 0.4)), P2(E.WALL + pad_d, zr(E.Z_PCB_TOP + 0.4)),
+                        P2(E.WALL + pad_d, zr(E.Z_POCKET_CEIL)), P2(E.WALL, zr(E.Z_POCKET_CEIL))],
+                       closed=True, **hatch))
+    r1 = E.LEG_BOSS_D / 2
+    ax.add_patch(MPoly([P2(-E.LEG_BOSS_H, -r1), P2(0, -r1), P2(0, r1), P2(-E.LEG_BOSS_H, r1)], closed=True, **hatch))
+    depth = max(r["depth"] for r in rows)
+    ax.add_patch(MRect(P2(-E.LEG_BOSS_H, -E.LEG_TAP_D / 2), depth * s, E.LEG_TAP_D * s, fc="white", ec="k", lw=0.5))
+    for v in (-1.5, 1.5):
+        ax.plot(*zip(P2(-E.LEG_BOSS_H, v), P2(-E.LEG_BOSS_H + depth - 0.5, v)), color="k", lw=0.3)
+    ax.plot(*zip(P2(-E.LEG_BOSS_H - 2, 0), P2(E.WALL + pad_d + 1, 0)), color="#0050a0", lw=0.3, ls="-.")
+    dim(ax, P2(-E.LEG_BOSS_H, r1 + 1.6), P2(0, r1 + 1.6), f"{E.LEG_BOSS_H} ±0.05", off=(0, 3.5))
+    dim(ax, P2(-E.LEG_BOSS_H - 2, -r1), P2(-E.LEG_BOSS_H - 2, r1), f"Ø{E.LEG_BOSS_D:.0f}", off=(-5, 0))
+    dim(ax, P2(0, zr(E.Z_SPLIT) - 1.2), P2(E.WALL, zr(E.Z_SPLIT) - 1.2), f"wall {E.WALL:.0f}", off=(0, -3))
+    dim(ax, P2(-E.LEG_BOSS_H, zr(E.Z_SPLIT) - 3.4), P2(-E.LEG_BOSS_H + depth, zr(E.Z_SPLIT) - 3.4),
+        f"drill depth {min(r['depth'] for r in rows)}-{depth} per table", off=(0, -3))
+    text(ax, ox + (E.WALL + pad_d / 2) * s, oy + zr(E.Z_PCB_TOP + 0.4) * s - 2, f"thread axis (dash-dot): "
+         f"Z = {E.LEG_Z} in STEP", size=5.5, color="#0050a0", ha="center")
+    text(ax, ox + (E.WALL + pad_d / 2) * s, oy + zr(E.Z_POCKET_CEIL) * s + 2,
+         "pad behind wall\n(depth 3.5-6, see STEP)", size=5.5, ha="center", va="bottom")
+    text(ax, ox - E.LEG_BOSS_H * s, oy + zr(E.Z_TOP) * s + 13, "outer wall face", size=5.5, ha="center")
+    ax.plot(*zip(P2(0, zr(E.Z_TOP) + 2.2), P2(0, zr(E.Z_TOP))), color="k", lw=0.3)
+    text(ax, ox + 15, oy + (zr(E.Z_TOP) + 7) * s, "SECTION B-B through boss axis, scale 5:1 (schematic)",
+         size=7, weight="bold", ha="center")
+
+    if E.DETENT_TEETH:
+        yb = _boss_teeth_spec(ax, rows, r0)
+    else:
+        spec = [
+            ["Boss", f"Ø{E.LEG_BOSS_D:.1f} ±0.1, {E.LEG_BOSS_H} ±0.05 proud of the outer wall face"],
+            ["Bearing face", "FLAT, no teeth. Flatness 0.05, perpendicular to the thread axis within 0.05. "
+                             "Ra 1.6 max"],
+            ["Function", "the leg hub is clamped against this face by the M3 spring thumbscrew (friction)"],
+            ["Thread", f"M3x0.5-6H RIGHT-HAND, concentric with boss within Ø0.05; tap drill Ø{E.LEG_TAP_D}"],
+            ["Quantity", f"{len(rows)} bosses per part (L1-L{len(rows)}), identical"],
+            ["Machining hint", "side op (4th axis, right-angle head or a setup per wall): face the boss, "
+                               "profile Ø10, drill and tap M3"],
+            ["Mating part", "custom leg ergodox_leg (drawing EDX-LEG, flat hub face) + stock M3 spring thumbscrew"],
+        ]
+        yb = table(ax, 225, 182, [("Leg boss specification", 38), ("", 147)], spec, size=5.6, row_h=4.0)
     loc = [[r["id"], f"{r['x']:.2f}", f"{r['y']:.2f}", f"{r['z']:.1f}", r["direction"].split("wall, ")[-1],
             f"{r['depth']}"] for r in rows]
     table(ax, 225, yb - 4, [("Boss", 12), ("X face", 18), ("Y face", 18), ("Z", 10),
                             ("Thread direction (into part)", 62), ("Drill depth", 18)], loc, size=5.6, row_h=4.0)
-    text(ax, 225, yb - 4 - 4.0 * (len(loc) + 1) - 1.5, "X/Y/Z: centre of the boss tip plane in STEP coordinates.",
+    text(ax, 225, yb - 4 - 4.0 * (len(loc) + 1) - 1.5, "X/Y/Z: centre of the boss face (tooth tip plane) in STEP coordinates.",
          size=5.2)
-    title_block(ax, part, dwg, "2 of 2", "1:1, 5:1, 20:1", version, TOP_MATERIAL)
+    title_block(ax, part, dwg, "2 of 2", "1:1, 5:1, 20:1" if E.DETENT_TEETH else "1:1, 5:1", version, TOP_MATERIAL)
     pdf.savefig(fig)
     plt.close(fig)
 
@@ -401,59 +430,9 @@ def bottom_sheet(pdf, shape, right, part, dwg, version):
     plt.close(fig)
 
 
-def leg_sheet(pdf, shape, part, dwg, version):
-    fig, ax = new_sheet()
+def _hub_teeth_spec(ax, r_hub, r0):
+    """Detail E (hub tooth profile) and the hub teeth table; returns the table bottom."""
     k = E.tooth_k()
-    r_hub, r0 = E.LEG_HUB_D / 2, E.LEG_TOOTH_R0
-    zc = E.LEG_HUB_L - E.LEG_ARM_T / 2
-    y_sh = E.LEG_LEN - E.LEG_CAP_L
-
-    # view A: toothed face (from -Z), 2.5:1
-    s = 2.5
-    to = place_view(ax, shape, "under", 62, 178, s)
-    text(ax, 20, 282, "VIEW A — toothed face (−Z), scale 2.5:1", size=8, weight="bold")
-    dim(ax, to(r_hub, -r_hub - 2, 0), to(-r_hub, -r_hub - 2, 0), f"Ø{E.LEG_HUB_D} -0.1")
-    dim(ax, to(E.LEG_ARM_W / 2 + 3, 0, 0), to(E.LEG_ARM_W / 2 + 3, y_sh, 0), f"{y_sh:.1f}", off=(5, 0))
-    dim(ax, to(E.LEG_ARM_W / 2 + 9, 0, 0), to(E.LEG_ARM_W / 2 + 9, y_sh + E.LEG_SPIGOT[1], 0),
-        f"{y_sh + E.LEG_SPIGOT[1]:.1f}", off=(5, 0))
-    dim(ax, to(-E.LEG_NECK_D / 2, y_sh + 1.0, 0), to(E.LEG_NECK_D / 2, y_sh + 1.0, 0), f"Ø{E.LEG_NECK_D}",
-        off=(-11, 0), size=5)
-    dim(ax, to(-E.LEG_SPIGOT[0] / 2, y_sh + 3.5, 0), to(E.LEG_SPIGOT[0] / 2, y_sh + 3.5, 0),
-        f"Ø{E.LEG_SPIGOT[0]}", off=(-11, 0), size=5)
-    dim(ax, to(-E.LEG_ARM_W / 2, 8, 0), to(E.LEG_ARM_W / 2, 8, 0), f"{E.LEG_ARM_W}", off=(-10, 0), size=5)
-    text(ax, 62, 108, "Pivot axis = origin of the STEP model.\nArm along +Y, toothed face at Z = 0.",
-         size=5.5, ha="center")
-
-    # side view (+X), 2.5:1, hidden lines show the bore
-    to2 = place_view(ax, shape, "+X", 150, 262, s, hidden=True)
-    text(ax, 95, 282, "VIEW B — side (+X), scale 2.5:1, hidden lines dashed", size=8, weight="bold")
-    dim(ax, to2(0, -r_hub - 2.5, 0), to2(0, -r_hub - 2.5, E.LEG_HUB_L), f"{E.LEG_HUB_L}", off=(-5, 0))
-    dim(ax, to2(0, 12, E.LEG_HUB_L - E.LEG_ARM_T), to2(0, 12, E.LEG_HUB_L), f"{E.LEG_ARM_T}", off=(5, 0))
-    text(ax, to2(0, 0, -1)[0], to2(0, 0, -1)[1] - 1.5, "teeth", size=5.5, ha="center")
-
-    # detail D: toothed face 6:1
-    sd = 6.0
-    cx, cy = 172, 185
-    ax.add_patch(MCircle((cx, cy), r_hub * sd, fill=False, lw=0.8))
-    ax.add_patch(MCircle((cx, cy), r0 * sd, fill=False, lw=0.6))
-    ax.add_patch(MCircle((cx, cy), E.LEG_HOLE_D / 2 * sd, fill=False, lw=0.6))
-    ax.add_patch(MCircle((cx, cy), E.LEG_CBORE[0] / 2 * sd, fill=False, lw=0.3, ls=(0, (2, 1.5)), ec="0.5"))
-    for i in range(E.LEG_TEETH):
-        a = 2 * math.pi * i / E.LEG_TEETH
-        b = a + math.pi / E.LEG_TEETH
-        ax.plot([cx + r0 * sd * math.cos(b), cx + r_hub * sd * math.cos(b)],
-                [cy + r0 * sd * math.sin(b), cy + r_hub * sd * math.sin(b)], color="k", lw=0.35)      # ridge
-        ax.plot([cx + r0 * sd * math.cos(a), cx + r_hub * sd * math.cos(a)],
-                [cy + r0 * sd * math.sin(a), cy + r_hub * sd * math.sin(a)], color="0.5", lw=0.25)    # root
-    dim(ax, (cx - r_hub * sd, cy - r_hub * sd - 4), (cx + r_hub * sd, cy - r_hub * sd - 4), f"Ø{E.LEG_HUB_D}")
-    dim(ax, (cx - r0 * sd, cy + 3), (cx + r0 * sd, cy + 3), f"Ø{2 * r0:.1f}", size=5)
-    dim(ax, (cx - E.LEG_HOLE_D / 2 * sd, cy - 3), (cx + E.LEG_HOLE_D / 2 * sd, cy - 3),
-        f"Ø{E.LEG_HOLE_D} thru", size=5)
-    text(ax, cx, cy + r_hub * sd + 8, f"DETAIL D — toothed face, scale 6:1  ({E.LEG_TEETH} TEETH, "
-         f"{360 / E.LEG_TEETH:.0f}° pitch)", size=7, weight="bold", ha="center")
-    text(ax, cx + r_hub * sd + 2, cy - r_hub * sd + 2, f"counterbore Ø{E.LEG_CBORE[0]} x {E.LEG_CBORE[1]}\n"
-         "deep, from the back face\n(dashed, hidden)", size=5.2, color="0.35", va="bottom")
-
     # profile at the rim, 20:1 (hub teeth point down, towards the case)
     pitch = 2 * math.pi * r_hub / E.LEG_TEETH
     hgt = r_hub * k
@@ -489,6 +468,76 @@ def leg_sheet(pdf, shape, part, dwg, version):
                            f"indexed {360 / E.LEG_TEETH:.0f}°. 3-axis, toothed face up."],
     ]
     y = table(ax, 225, 283, [("Hub teeth specification", 30), ("", 155)], spec, size=5.5, row_h=4.0)
+    return y
+
+
+def leg_sheet(pdf, shape, part, dwg, version):
+    fig, ax = new_sheet()
+    teeth = E.DETENT_TEETH
+    face = "toothed face" if teeth else "bearing face"
+    r_hub, r0 = E.LEG_HUB_D / 2, E.LEG_TOOTH_R0
+    zc = E.LEG_HUB_L - E.LEG_ARM_T / 2
+    y_sh = E.LEG_LEN - E.LEG_CAP_L
+
+    # view A: toothed face (from -Z), 2.5:1
+    s = 2.5
+    to = place_view(ax, shape, "under", 62, 178, s)
+    text(ax, 20, 282, f"VIEW A — {face} (−Z), scale 2.5:1", size=8, weight="bold")
+    dim(ax, to(r_hub, -r_hub - 2, 0), to(-r_hub, -r_hub - 2, 0), f"Ø{E.LEG_HUB_D} -0.1")
+    dim(ax, to(E.LEG_ARM_W / 2 + 3, 0, 0), to(E.LEG_ARM_W / 2 + 3, y_sh, 0), f"{y_sh:.1f}", off=(5, 0))
+    dim(ax, to(E.LEG_ARM_W / 2 + 9, 0, 0), to(E.LEG_ARM_W / 2 + 9, y_sh + E.LEG_SPIGOT[1], 0),
+        f"{y_sh + E.LEG_SPIGOT[1]:.1f}", off=(5, 0))
+    dim(ax, to(-E.LEG_NECK_D / 2, y_sh + 1.0, 0), to(E.LEG_NECK_D / 2, y_sh + 1.0, 0), f"Ø{E.LEG_NECK_D}",
+        off=(-11, 0), size=5)
+    dim(ax, to(-E.LEG_SPIGOT[0] / 2, y_sh + 3.5, 0), to(E.LEG_SPIGOT[0] / 2, y_sh + 3.5, 0),
+        f"Ø{E.LEG_SPIGOT[0]}", off=(-11, 0), size=5)
+    dim(ax, to(-E.LEG_ARM_W / 2, 8, 0), to(E.LEG_ARM_W / 2, 8, 0), f"{E.LEG_ARM_W}", off=(-10, 0), size=5)
+    text(ax, 62, 108, f"Pivot axis = origin of the STEP model.\nArm along +Y, {face} at Z = 0.",
+         size=5.5, ha="center")
+
+    # side view (+X), 2.5:1, hidden lines show the bore
+    to2 = place_view(ax, shape, "+X", 150, 262, s, hidden=True)
+    text(ax, 95, 282, "VIEW B — side (+X), scale 2.5:1, hidden lines dashed", size=8, weight="bold")
+    dim(ax, to2(0, -r_hub - 2.5, 0), to2(0, -r_hub - 2.5, E.LEG_HUB_L), f"{E.LEG_HUB_L}", off=(-5, 0))
+    dim(ax, to2(0, 12, E.LEG_HUB_L - E.LEG_ARM_T), to2(0, 12, E.LEG_HUB_L), f"{E.LEG_ARM_T}", off=(5, 0))
+    text(ax, to2(0, 0, -1)[0], to2(0, 0, -1)[1] - 1.5, "teeth" if teeth else "bearing face", size=5.5, ha="center")
+
+    # detail D: toothed face 6:1
+    sd = 6.0
+    cx, cy = 172, 185
+    ax.add_patch(MCircle((cx, cy), r_hub * sd, fill=False, lw=0.8))
+    if teeth:
+        ax.add_patch(MCircle((cx, cy), r0 * sd, fill=False, lw=0.6))
+    ax.add_patch(MCircle((cx, cy), E.LEG_HOLE_D / 2 * sd, fill=False, lw=0.6))
+    ax.add_patch(MCircle((cx, cy), E.LEG_CBORE[0] / 2 * sd, fill=False, lw=0.3, ls=(0, (2, 1.5)), ec="0.5"))
+    for i in range(E.LEG_TEETH if teeth else 0):
+        a = 2 * math.pi * i / E.LEG_TEETH
+        b = a + math.pi / E.LEG_TEETH
+        ax.plot([cx + r0 * sd * math.cos(b), cx + r_hub * sd * math.cos(b)],
+                [cy + r0 * sd * math.sin(b), cy + r_hub * sd * math.sin(b)], color="k", lw=0.35)      # ridge
+        ax.plot([cx + r0 * sd * math.cos(a), cx + r_hub * sd * math.cos(a)],
+                [cy + r0 * sd * math.sin(a), cy + r_hub * sd * math.sin(a)], color="0.5", lw=0.25)    # root
+    dim(ax, (cx - r_hub * sd, cy - r_hub * sd - 4), (cx + r_hub * sd, cy - r_hub * sd - 4), f"Ø{E.LEG_HUB_D}")
+    if teeth:
+        dim(ax, (cx - r0 * sd, cy + 3), (cx + r0 * sd, cy + 3), f"Ø{2 * r0:.1f}", size=5)
+    dim(ax, (cx - E.LEG_HOLE_D / 2 * sd, cy - 3), (cx + E.LEG_HOLE_D / 2 * sd, cy - 3),
+        f"Ø{E.LEG_HOLE_D} thru", size=5)
+    text(ax, cx, cy + r_hub * sd + 8, f"DETAIL D — toothed face, scale 6:1  ({E.LEG_TEETH} TEETH, "
+         f"{360 / E.LEG_TEETH:.0f}° pitch)" if teeth else "DETAIL D — bearing face, scale 6:1  (FLAT, NO TEETH)",
+         size=7, weight="bold", ha="center")
+    text(ax, cx + r_hub * sd + 2, cy - r_hub * sd + 2, f"counterbore Ø{E.LEG_CBORE[0]} x {E.LEG_CBORE[1]}\n"
+         "deep, from the back face\n(dashed, hidden)", size=5.2, color="0.35", va="bottom")
+
+    if teeth:
+        y = _hub_teeth_spec(ax, r_hub, r0)
+    else:
+        spec = [
+            ["Bearing face", f"Z = 0, FLAT, no teeth, Ø{E.LEG_HOLE_D} to Ø{E.LEG_HUB_D}. Flatness 0.05, "
+                             "perpendicular to the bore within 0.05. Ra 1.6 max"],
+            ["Function", "clamped against the flat case boss (drawing EDX-TOP sheet 2) by the M3 spring "
+                         "thumbscrew; the leg holds its angle by friction"],
+        ]
+        y = table(ax, 225, 283, [("Bearing face", 30), ("", 155)], spec, size=5.5, row_h=4.0)
     feats = [
         ["Hub", f"Ø{E.LEG_HUB_D} -0.1 x {E.LEG_HUB_L} long (face to back face), back edge chamfer "
                 f"{E.LEG_EDGE}x45°"],
@@ -506,12 +555,13 @@ def leg_sheet(pdf, shape, part, dwg, version):
         f"Material: {TOP_MATERIAL}.  QUANTITY: {LEG_QTY} pcs (3 per keyboard half; identical, not handed).",
         "NO THREADS in this part. The stock ErgoDox EZ M3 spring thumbscrew passes through the Ø3.4 bore "
         "into the M3 thread of the case boss.",
-        "Toothed face: no burrs; tooth count and 90° form are critical (the leg must click in every 10° step).",
-        "Break sharp edges 0.1-0.2 mm, except the tooth crests (0.1 max).",
+        *(["Toothed face: no burrs; tooth count and 90° form are critical (the leg must click in every 10° step).",
+           "Break sharp edges 0.1-0.2 mm, except the tooth crests (0.1 max)."] if teeth else
+          ["Bearing face: flat, no burrs, no raised tool marks.", "Break sharp edges 0.1-0.2 mm."]),
         f"Finish: {FINISH}; same colour as the case.",
         "Foot cap ergodox_leg_cap: 3D print in TPU 95A (not machined), push onto the spigot.",
     ], width=118)
-    title_block(ax, part, dwg, "1 of 1", "2.5:1, 6:1, 20:1", version, TOP_MATERIAL)
+    title_block(ax, part, dwg, "1 of 1", "2.5:1, 6:1, 20:1" if teeth else "2.5:1, 6:1", version, TOP_MATERIAL)
     pdf.savefig(fig)
     plt.close(fig)
 

@@ -36,7 +36,7 @@ STL files from the latest `main` build. You can:
 - try anodize colours;
 - explode the top shell off the tray;
 - sweep a section plane through the parts;
-- click the legs through their 10° detent steps;
+- swing the legs to any angle;
 - hover a part to see its size and mass;
 - download any part as STL.
 
@@ -52,9 +52,10 @@ STL files from the latest `main` build. You can:
 - **Matches the EZ:**
   - TRRS openings on both halves.
   - USB, 3 LED windows and the reset hole on the right half only.
-  - **Tent/tilt legs** with click stops: a tapped M3 hole with a toothed Ø10 detent boss in the case,
-    and a **custom CNC leg** whose hub teeth are the exact negative of the boss. It uses the stock EZ
-    M3 spring thumbscrew. See [docs/legs.md](docs/legs.md).
+  - **Tent/tilt legs**: a tapped M3 hole with a flat Ø10 boss in the case, and a **custom CNC leg**
+    clamped onto it at any angle by the stock EZ M3 spring thumbscrew. The faces are flat so they are
+    easy to mill; a toothed 10° click version is still in the model (`DETENT_TEETH`). See
+    [docs/legs.md](docs/legs.md).
 - **Designed for milling.** Internal corners are R ≥ 1 mm, and the jack notches open towards the
   parting plane. The top takes 2 setups plus a side setup for the leg bosses; the bottom takes 2 setups.
 - **Fully parametric.** Every dimension is a named constant at the top of
@@ -83,7 +84,7 @@ flowchart LR
 
 The stack from the bottom up: the **bottom tray** (Z 0–7), the **PCB**, clamped between posts in the
 tray and bosses in the top, and the **top shell** (Z 7–17.6), with the 1.5 mm plate milled into its
-key well. The **legs** screw into toothed bosses on the outer walls of the top shell.
+key well. The **legs** screw into flat bosses on the outer walls of the top shell.
 
 ## Download
 
@@ -92,7 +93,7 @@ Ready-made files are attached to every [GitHub release](../../releases):
 - `ergodox-cnc-case-<version>-stl.zip` contains the STL files (4 case parts, 2 plate spacers, the leg and its foot cap), for a 3D-printed test fit.
 - `ergodox-cnc-case-<version>-step.zip` contains the STEP files (case parts and leg) and `ergodox_right_fitcheck.dxf`, for CAM or a CNC shop.
 - `ergodox-cnc-case-<version>-jlccnc-order.zip` is a ready-to-upload order package: each STEP plus a PDF
-  manufacturing drawing (threads, detent teeth, tolerances, finish) and a hole table. It holds the
+  manufacturing drawing (threads, leg bosses, tolerances, finish) and a hole table. It holds the
   4 case parts and the leg; order the leg in **quantity 6**, one part for all positions. The TPU foot
   cap is an STL to print yourself. [docs/jlccnc-order.md](docs/jlccnc-order.md) has every form setting,
   including the customs category: the case parts go under Cavity & Enclosure and the leg under
@@ -140,7 +141,7 @@ exports/                 (git-ignored) generated STEP/STL/DXF
 | Document | Contents |
 |---|---|
 | [docs/design.md](docs/design.md) | Where each dimension comes from, the coordinate frame, the Z stack, part breakdown |
-| [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 detent boss, the custom leg, measurements, what to check |
+| [docs/legs.md](docs/legs.md) | Tent/tilt legs: the M3 boss, the custom leg, measurements, what to check |
 | [docs/fit-check.md](docs/fit-check.md) | What to measure on your keyboard before machining |
 | [docs/machining.md](docs/machining.md) | Bill of materials, setups, tooling, finishing |
 | [docs/jlccnc-order.md](docs/jlccnc-order.md) | Ordering from JLCCNC: form settings and customs categories, remarks to paste (EN/中文), answers to engineering questions |
@@ -167,11 +168,11 @@ The custom tent legs, deployed, with a section through the outer leg mount:
 |---|---|
 | ![](renders/right_with_legs.png) | ![](renders/leg_section.png) |
 
-The custom leg and its toothed face:
+The custom leg and its flat bearing face:
 
-| Leg | Toothed face |
+| Leg | Bearing face |
 |---|---|
-| ![](renders/leg.png) | ![](renders/leg_teeth.png) |
+| ![](renders/leg.png) | ![](renders/leg_face.png) |
 
 The cross-sections show the PCB clamped between the top bosses and the bottom posts:
 

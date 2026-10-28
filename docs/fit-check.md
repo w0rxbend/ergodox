@@ -58,7 +58,7 @@ housing. It rests against the plate underside and stops **0.5 mm above the PCB**
 ## 3. Tent/tilt legs
 
 The model reuses the stock legs and M3 thumbscrews. Before cutting, check the 3 items listed in
-[legs.md](legs.md#check-before-machining): the tooth count on the leg hub, the thread length and the leg positions.
+[legs.md](legs.md#check-before-machining): the thread length and the leg positions.
 
 ## 4. Jack openings
 
@@ -78,4 +78,4 @@ Build up the keyboard in the printed case:
 - the screws should line up with the PCB holes,
 - the cables should plug in,
 - the capacitor should sit in its pocket without touching,
-- the legs should screw in and click through their positions on the toothed bosses (tap M3 in the print, or use M3 heat-set inserts). Print `ergodox_leg.stl` (PETG, 0.1 mm layers, toothed face down on a smooth plate) and `ergodox_leg_cap.stl` (TPU) and try them with the stock thumbscrew.
+- the legs should screw in and hold their angle on the bosses (tap M3 in the print, or use M3 heat-set inserts). Print `ergodox_leg.stl` (PETG, bearing face down) and `ergodox_leg_cap.stl` (TPU) and try them with the stock thumbscrew.

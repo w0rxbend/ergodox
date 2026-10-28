@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Section across the outer wall through the tent-leg pivot: tapped M3 hole in the
-pad, toothed detent boss, and the stock leg from the assembly preview.
+pad, the Ø10 leg boss, and the custom leg from the assembly preview.
 
 Usage: leg_section.py <exports_dir> <out.png>
 """
@@ -22,5 +22,5 @@ for z, lab in ((7.0, "parting plane"), (8.6, "PCB top"), (12.0, "M3 / pivot axis
     ax.axhline(z, color="r", lw=0.5, ls="--")
     ax.text(0.01, z + 0.2, lab, color="r", fontsize=7, transform=ax.get_yaxis_transform())
 ax.set_xlim(66, 92); ax.set_ylim(-42, 19); ax.set_aspect("equal"); ax.grid(alpha=0.3)
-ax.set_title("Outer tent leg: M3 tapped pad + toothed boss (orange = stock leg)", fontsize=8)
+ax.set_title("Outer tent leg: M3 tapped pad + Ø10 boss (orange = leg)", fontsize=8)
 plt.tight_layout(); plt.savefig(sys.argv[2])

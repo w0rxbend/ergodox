@@ -165,7 +165,7 @@ function build() {
   soloLeg = null;
   if (state.scene === "leg") {
     soloLeg = legAssembly();
-    soloLeg.rotation.set(Math.PI / 2, Math.PI, 0);   // stand the leg up, toothed face to the camera
+    soloLeg.rotation.set(Math.PI / 2, Math.PI, 0);   // stand the leg up, bearing face to the camera
     root.add(soloLeg);
   } else {
     const sides = state.scene === "pair" ? ["left", "right"] : [state.scene];

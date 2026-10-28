@@ -34,7 +34,7 @@ renders:
         {{exports}}/ergodox_right_assembly_with_legs.stl
     {{python}} tools/zrender.py {{renders}}/leg.png 900 35 30 {{exports}}/ergodox_leg.stl {{exports}}/ergodox_leg_cap.stl
     {{python}} tools/zrender.py {{renders}}/spacer.png 1000 -50 35 {{exports}}/ergodox_right_spacer.stl
-    {{python}} tools/zrender.py {{renders}}/leg_teeth.png 900 -150 20 {{exports}}/ergodox_leg.stl
+    {{python}} tools/zrender.py {{renders}}/leg_face.png 900 -150 20 {{exports}}/ergodox_leg.stl
     {{python}} tools/section.py {{exports}} {{renders}}/section.png
     {{python}} tools/leg_section.py {{exports}} {{renders}}/leg_section.png
     {{python}} tools/overlay.py {{photo}} {{renders}}/overlay_on_photo.png

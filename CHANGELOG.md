@@ -5,6 +5,19 @@ with STL and STEP archives.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-28
+
+### Changed
+
+- Tent legs: the case bosses and the leg hub are now **flat** (no teeth), so they are easier to
+  mill. JLCCNC declined the 36 radial detent teeth as unmachinable. The stock spring thumbscrew
+  clamps the leg by friction at any angle, instead of in 10° clicks. The toothed version is still
+  in the model behind `DETENT_TEETH = True`; the drawings follow the switch.
+  - Drawings: the boss sheet (EDX-TOP sheet 2) and the leg sheet show a flat face with flatness and
+    finish specs instead of the tooth details.
+  - Order guide (EN/中文) remarks, machining steps, fit check and legs docs updated.
+  - Render `leg_teeth.png` is now `leg_face.png`. The viewer's leg angle slider moves in 5° steps.
+
 ### Changed
 
 - Order guide: Product Desc (customs category) for each part. The leg goes under Aluminum Alloy Bracket

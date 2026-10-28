@@ -82,24 +82,26 @@ TAP_DEPTH_PLATE = 3.9    # for bosses under the plate (leaves ~1.1 mm skin)
 BOSS_D = 6.5
 POST_D = 6.5
 
-# Tent / tilt legs: reuses the stock EZ legs and their spring thumbscrews (M3). The stock
-# bracket is not used: the M3 thread is tapped into the wall and a pad behind it, and a
-# toothed boss on the outside of the wall replaces the bracket nut's detent face. The
-# leg hub's radial teeth mesh with it. See docs/legs.md.
+# Tent / tilt legs: reuses the stock EZ spring thumbscrews (M3). The stock bracket is not
+# used: the M3 thread is tapped into the wall and a pad behind it, with a Ø10 boss on the
+# outside of the wall for the leg hub to bear on. The bosses and the hub are flat by default:
+# the spring thumbscrew clamps the leg by friction at any angle. JLCCNC could not machine the
+# radial teeth; DETENT_TEETH = True brings back the toothed (10° click) version. See docs/legs.md.
+DETENT_TEETH = False
 LEG_Z = 12.0             # thread axis; the Ø10 boss then spans Z 7.0-17.0 on the top part
 LEG_TAP_D = 2.5          # M3 tap drill
 LEG_DEPTH = 6.0          # max drill depth from the boss face
 LEG_PAD = (10.0, 6.0)    # pad (along wall, into case) behind the wall
 LEG_BOSS_D = 10.0        # detent boss on the outer wall face
-LEG_BOSS_H = 1.2         # boss height above the wall face (tooth tips)
-LEG_TEETH = 36           # radial detent teeth (stock: 10 deg steps) - count yours
+LEG_BOSS_H = 1.2         # boss height above the wall face (bearing face / tooth tips)
+LEG_TEETH = 36           # radial detent teeth if DETENT_TEETH (stock: 10 deg steps)
 LEG_TOOTH_R0 = 2.2       # teeth run from this radius to the boss edge
 LEG_TOOTH_ANGLE = 90.0   # included angle of the V teeth
 # Custom CNC leg (replaces the stock leg; reuses the stock M3 spring thumbscrew). Hub and
-# arm sizes are from caliper photos of the stock leg. The hub teeth are the exact negative
-# of the boss teeth above, so the pair always meshes. See docs/legs.md.
+# arm sizes are from caliper photos of the stock leg. With DETENT_TEETH the hub teeth are
+# the exact negative of the boss teeth above, so the pair always meshes. See docs/legs.md.
 LEG_HUB_D = 10.4         # stock: 10.4-10.5
-LEG_HUB_L = 8.0          # hub length along the screw, toothed face to spring face
+LEG_HUB_L = 8.0          # hub length along the screw, bearing face to spring face
 LEG_HOLE_D = 3.4         # M3 clearance
 LEG_CBORE = (6.5, 4.0)   # spring counterbore in the outer face (diameter, depth)
 LEG_ARM_W = 7.5          # arm width in the swing plane at the hub (stock ~7.5)
@@ -454,11 +456,14 @@ def detent_grooves(r_out: float, z_tip: float) -> list:
 
 
 def detent_boss() -> Solid:
-    """Toothed boss in a local frame: axis along +Z, wall face at Z = 0, tooth tips at
-    LEG_BOSS_H. V grooves with apexes on the axis, like the stock nut (Hirth-style)."""
+    """Leg boss in a local frame: axis along +Z, wall face at Z = 0, bearing face at
+    LEG_BOSS_H. Flat unless DETENT_TEETH; then V grooves with apexes on the axis, like the
+    stock nut (Hirth-style), and the tooth tips are at LEG_BOSS_H."""
     r1 = LEG_BOSS_D / 2
     boss = Pos(0, 0, -WALL / 2) * Cylinder(r1, WALL / 2 + LEG_BOSS_H,
                                           align=(Align.CENTER, Align.CENTER, Align.MIN))
+    if not DETENT_TEETH:
+        return boss
     boss -= detent_grooves(r1 + 0.3, LEG_BOSS_H)
     # flat land inside the teeth at root depth, so the hub seats on the teeth only
     root = LEG_TOOTH_R0 * tooth_k()
@@ -605,7 +610,7 @@ def build_top(right: bool) -> Solid:
         body -= Pos(cx, cy, Z_PCB_TOP - 0.01) * Cylinder(TAP_D / 2, depth,
                                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
 
-    # tent legs: pad behind the wall, toothed detent boss outside, tapped M3 hole
+    # tent legs: pad behind the wall, Ø10 boss outside (flat or toothed), tapped M3 hole
     boss = detent_boss()
     for (px, py), (nx, ny) in leg_mounts():
         pad_d = leg_pad_depth(px, py, nx, ny)
@@ -667,9 +672,9 @@ def build_bottom(right: bool) -> Solid:
 
 
 def build_leg() -> Solid:
-    """Custom tent leg, own frame: hub axis +Z, toothed face at Z = 0 with the teeth below
-    it (towards the case), spring face at Z = LEG_HUB_L, arm along +Y. One part fits all
-    six positions (it is symmetric about the YZ plane)."""
+    """Custom tent leg, own frame: hub axis +Z, bearing face at Z = 0 (teeth below it,
+    towards the case, if DETENT_TEETH), spring face at Z = LEG_HUB_L, arm along +Y. One part
+    fits all six positions (it is symmetric about the YZ plane)."""
     r = LEG_HUB_D / 2
     hub = Cylinder(r, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
     hub = chamfer(hub.edges().group_by(Axis.Z)[-1], LEG_EDGE)
@@ -691,8 +696,9 @@ def build_leg() -> Solid:
     leg -= Cylinder(LEG_HOLE_D / 2, 3 * LEG_HUB_L)
     leg -= Pos(0, 0, LEG_HUB_L - LEG_CBORE[1]) * Cylinder(
         LEG_CBORE[0] / 2, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    teeth = Pos(0, 0, -2) * Cylinder(r, 2.005, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    leg += [teeth & g for g in detent_grooves(r + 0.3, 0.0)]
+    if DETENT_TEETH:
+        teeth = Pos(0, 0, -2) * Cylinder(r, 2.005, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        leg += [teeth & g for g in detent_grooves(r + 0.3, 0.0)]
     return leg
 
 
@@ -711,7 +717,7 @@ def build_leg_cap() -> Solid:
 
 def leg_parts(swing_deg: float = 90.0) -> list:
     """Legs + caps seated on each detent boss for the assembly preview. swing_deg turns the
-    leg about the screw in 10 deg detent steps (90 = straight down, 0 / 180 = along the wall)."""
+    leg about the screw (90 = straight down, 0 / 180 = along the wall); 10 deg click steps with DETENT_TEETH."""
     leg = build_leg() + build_leg_cap()
     parts = []
     for (px, py), (nx, ny) in leg_mounts():

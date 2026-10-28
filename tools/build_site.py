@@ -71,7 +71,7 @@ def main(exports, out, version):
                            mass_g=round(vol * AL_DENSITY, 1) if mat == "alu" else None,
                            volume_cm3=round(vol / 1000, 1))
     manifest = dict(version=version, repo="https://github.com/w0rxbend/ergodox", parts=parts,
-                    legs=leg_placements(), leg_step_deg=10)
+                    legs=leg_placements(), leg_step_deg=10 if ec.DETENT_TEETH else None)
     with open(os.path.join(out, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=1)
     open(os.path.join(out, ".nojekyll"), "w").close()

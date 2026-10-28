@@ -9,7 +9,7 @@ Each half has two parts, joined at the PCB's bottom face:
   - the perimeter walls, 3 mm thick
   - the TRRS notch, plus the USB notch on the right half
   - the PCB clamp bosses, with M2.5 tapped holes
-  - the tent-leg mounts: an M3 tapped pad and a toothed Ø10 detent boss on the wall
+  - the tent-leg mounts: an M3 tapped pad and a flat Ø10 boss on the wall
   - the LED and reset holes, right half only
 - **Bottom** (`ergodox_<side>_bottom`): a tray with a 3 mm floor, low walls and posts that support the PCB.
   Its front inner wall (main body and thumb cluster) is 1 mm thicker than the top's
@@ -66,6 +66,6 @@ radius for every screw.
 ## Known deviations from the injection-moulded EZ
 
 - The EZ shell has many moulding ribs. Here they are replaced by solid aluminium walls, 3 mm thick.
-- The stock steel leg brackets aren't used. Each leg screws into an M3 thread in the aluminium and locks against teeth milled into the case ([legs.md](legs.md)).
+- The stock steel leg brackets aren't used. Each leg screws into an M3 thread in the aluminium and is clamped against a flat boss on the wall ([legs.md](legs.md)). The stock bracket nut has detent teeth; the milled version has none, so the legs hold by friction.
 - The outline and radii come from photos, not from ZSA CAD.
 - Plate-mount stabilisers are off by default (`STABILIZERS = False`), following the stock EZ 2u thumb keys.

@@ -40,7 +40,7 @@
     <p class="eyebrow mono">6061-T6 · 4 case parts · 6 legs · <span id="version">v—</span></p>
     <h1>An aluminium case for the <em>ErgoDox&nbsp;EZ</em>, written in Python.</h1>
     <p class="lede">A parametric two-piece case for CNC milling. It takes the stock EZ PCB, switches and
-      keycaps, and adds tent legs that click into place on toothed bosses. One
+      keycaps, and adds tent legs that clamp onto flat bosses at any angle. One
       <a href="https://github.com/gumyr/build123d">build123d</a> script produces the STEP files for the shop,
       the STL files for a test print, and PDF drawings for the order.</p>
     <div class="cta">
@@ -82,7 +82,7 @@
       </div>
       <div class="group" id="swingGroup">
         <label class="cap" for="swing">Leg angle <span class="val mono" id="swingVal">90°</span></label>
-        <input type="range" id="swing" min="0" max="180" step="10" value="90">
+        <input type="range" id="swing" min="0" max="180" step="5" value="90">
       </div>
       <div class="group toggles">
         <label><input type="checkbox" id="tLegs" checked> legs</label>
@@ -105,7 +105,7 @@
   <div class="stat"><span class="num mono">194.4 × 168.0</span><span class="lbl">mm per half, 17.6 mm tall</span></div>
   <div class="stat"><span class="num mono" id="massStat">≈ 357 g</span><span class="lbl">per half in 6061-T6</span></div>
   <div class="stat"><span class="num mono">76</span><span class="lbl">switch cutouts, 14.00 +0.05 mm</span></div>
-  <div class="stat"><span class="num mono">36 × 10°</span><span class="lbl">detent teeth per leg mount</span></div>
+  <div class="stat"><span class="num mono">0–180°</span><span class="lbl">leg swing, clamped at any angle</span></div>
 </section>
 
 <section id="features" class="features">
@@ -114,9 +114,9 @@
     <article><h3>Exact key layout</h3><p>The switch positions, column stagger and the 25° thumb cluster come straight from the original ErgoDox KiCad PCB.</p></article>
     <article><h3>Integrated plate</h3><p>A 1.5&nbsp;mm switch plate is milled into the top shell and sits in a 4&nbsp;mm key well. A separate 3&nbsp;mm spacer with an opening per switch fills the gap down to the PCB.</p></article>
     <article><h3>Clamped PCB</h3><p>The PCB sits between bosses in the top and posts in the bottom tray, held by 8 × M2.5 countersunk screws on the stock hole pattern.</p></article>
-    <article><h3>Clicking tent legs</h3><p>A tapped M3 hole with a Ø10 boss carrying 36 radial V-teeth. The custom leg's hub is its exact negative, held by the stock EZ spring thumbscrew.</p></article>
+    <article><h3>Tent legs</h3><p>A tapped M3 hole with a flat Ø10 boss on the wall. The stock EZ spring thumbscrew clamps the custom leg's flat hub onto it, at any angle.</p></article>
     <article><h3>Fits the real board</h3><p>Pockets for the electrolytic capacitor on each PCB, measured from photos. Openings for TRRS, USB, LEDs and reset, as on the EZ.</p></article>
-    <article><h3>Ready to order</h3><p>Every release ships STEP files plus A3 PDF drawings with thread tables and tooth specs, and order remarks in English and Chinese.</p></article>
+    <article><h3>Ready to order</h3><p>Every release ships STEP files plus A3 PDF drawings with thread tables and boss specs, and order remarks in English and Chinese.</p></article>
   </div>
 </section>
 
@@ -129,7 +129,7 @@
     <figure><img loading="lazy" src="renders/spacer.png" alt="Plate spacer"><figcaption>Plate spacer: 3&nbsp;mm, one opening per switch</figcaption></figure>
     <figure><img loading="lazy" src="renders/right_with_legs.png" alt="Right half with legs deployed"><figcaption>Legs deployed</figcaption></figure>
     <figure><img loading="lazy" src="renders/leg_section.png" alt="Section through the leg mount"><figcaption>Section through the outer leg mount</figcaption></figure>
-    <figure><img loading="lazy" src="renders/leg_teeth.png" alt="Leg hub teeth"><figcaption>The leg's 36-tooth hub</figcaption></figure>
+    <figure><img loading="lazy" src="renders/leg_face.png" alt="Leg bearing face"><figcaption>The leg's flat bearing face</figcaption></figure>
     <figure class="wide"><img loading="lazy" src="renders/section.png" alt="Cross-sections through the case"><figcaption>Cross-sections: PCB clamped between top bosses and bottom posts</figcaption></figure>
     <figure class="wide"><img loading="lazy" src="renders/overlay_on_photo.png" alt="Model outline overlaid on a photo of an ErgoDox EZ"><figcaption>The model overlaid on a photo of a real EZ</figcaption></figure>
   </div>
