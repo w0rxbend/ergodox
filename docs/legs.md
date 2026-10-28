@@ -25,15 +25,15 @@ positions and holds its angle. The teeth are visible on both parts in `images/ne
 
 | Feature | Value | Parameter |
 |---|---|---|
-| Thread | M3, tap drill Ø2.5, 5.2–6.0 mm deep from the boss face | `LEG_TAP_D`, `LEG_DEPTH` |
+| Thread | M3, tap drill Ø2.5, 6.7–7.5 mm deep from the boss face | `LEG_TAP_D`, `LEG_DEPTH` |
 | Thread axis height | Z 12.0 | `LEG_Z` |
-| Boss | Ø10, 1.2 mm proud of the wall, flat face, spans Z 7.0–17.0 on the top part | `LEG_BOSS_D`, `LEG_BOSS_H` |
+| Boss | Ø10, 2.7 mm proud of the wall, flat face, spans Z 7.0–17.0 on the top part | `LEG_BOSS_D`, `LEG_BOSS_H` |
 | Pad behind the wall | 10 mm along the wall, up to 6 mm deep, Z 9.0–14.6, kept clear of switch housings and the key well | `LEG_PAD` |
 | Positions (KiCad right-half frame) | outer wall y = 64, inner wall y = 64, thumb end wall v = 0.56u (stock EZ positions) | `LEG_MAIN_Y`, `LEG_THUMB_V` |
 
 - **Holding the angle.** The spring thumbscrew presses the flat hub onto the flat boss. Tighten the
   thumbscrew to lock the leg. If it slips, add a thin friction washer between hub and boss: rubber,
-  cork or fibre, Ø10 × Ø3.2, up to 1 mm thick (the arm has 3.2 mm of clearance to the wall).
+  cork or fibre, Ø10 × Ø3.2, up to 1 mm thick (the arm has 4.7 mm of clearance to the wall).
 - **Thread depth.** The M3 thread runs through the boss, the 3 mm wall and the pad. On the outer
   wall the drill stops 0.3 mm short of the key well, because the thread passes just under the well
   floor there. The build report prints the depth for each leg.
@@ -63,7 +63,7 @@ The leg copies the stock leg's shape and size (caliper photos in [`images/leg`](
 
 - **One part for all six positions.** The leg is symmetric, so it is not handed. Order 6.
 - **Clearance.** The arm is flush with the outer (spring) face, so it sits 2.0 mm off the bearing face
-  and 3.2 mm off the wall as it swings.
+  and 4.7 mm off the wall as it swings.
 - **Foot cap.** `ergodox_leg_cap.stl` is a push-on cap to print in TPU 95A. The stock rubber caps may
   also fit the Ø4.5 spigot.
 - **Machining.** The leg needs only 3-axis work: face the hub, drill the bore, then cut the
@@ -88,8 +88,10 @@ The readings come from caliper photos in [`images/`](../images) and [`images/nex
 
 1. **Thread length.** With the custom leg seated, the thumbscrew passes the spring and the 4.0 mm web
    behind the counterbore before it reaches the case. Measure the stock screw: the thread
-   must not reach further into the case than the drill depth in the build report (at least 5.2 mm). If it
-   is too long, add a washer under the head or change `LEG_CBORE`.
+   must not reach further into the case than the drill depth in the build report (at least 6.7 mm). If it
+   is too long, add a washer under the head or change `LEG_CBORE`. It also has to reach far enough:
+   the boss sticks out 2.7 mm, so the screw needs about 2.7 + 3 mm of thread past the hub face to
+   engage the full boss and wall.
 2. **Leg positions.** These came from photos (±2 mm). Measure your stock shell from its corners and
    adjust `LEG_MAIN_Y` and `LEG_THUMB_V` if needed.
 
@@ -98,7 +100,7 @@ The readings come from caliper photos in [`images/`](../images) and [`images/nex
 The boss outline is cut with the outer profile. The boss face and the M3 hole sit on vertical
 walls, so they need a side setup: a 4th axis, a right-angle head, or the part clamped on its side.
 The thumb wall is at 25°.
-- **Boss face:** face it flat, 1.2 mm proud of the wall.
+- **Boss face:** face it flat, 2.7 mm proud of the wall.
 - **Thread:** drill Ø2.5 and tap M3, or fit a Helicoil (Ø3.2 drill, STI tap) for a hard-wearing thread.
 
 ## Known limitations

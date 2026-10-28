@@ -52,7 +52,7 @@ model frame, which is centred near the origin with y pointing away from the user
 | 7.0 – 8.6 | PCB (1.6 mm) |
 | 8.6 – 12.1 | top bosses clamp the PCB; switch housings |
 | 9.1 – 12.1 | plate spacer (separate part), 0.5 mm above the PCB |
-| 12.1 – 13.6 | integrated plate (1.5 mm) |
+| 12.1 – 13.6 | integrated plate (1.5 mm); outside the well, the relief pocket in the back strip runs up to 14.6 (only where ≥ 6 mm wide, `RELIEF_MIN_W`) |
 | 13.6 – 17.6 | key well (4 mm) |
 | 14.6 – 17.6 | 3 mm skin over the back bezel. The pocket under it gives 6 mm above the PCB for the jacks and chips. |
 
@@ -62,6 +62,16 @@ Two clamp screws sit between switches: #0 by the thumb cluster and #4 in the cen
 shrunk to keep clear of the switch housings, which the model treats as ±7.8 mm squares. The minimum boss
 radius is the tap drill radius plus 1 mm (about 2.0 mm). The build report lists the clearance and boss
 radius for every screw.
+
+## Bosses joined to the wall
+
+A boss standing close to a wall leaves a narrow, deep slot that a milling cutter can't reach. JLCCNC
+flagged these, so any boss closer to the wall than `WEB_GAP_TOP` (5 mm, top shell) or
+`WEB_GAP_BOTTOM` (2 mm, bottom tray) is joined to the nearest wall by a web as wide as the boss, over
+the boss's full height. That is 6 bosses in each top shell (all but the two under the key well) and
+the post at the thumb notch in each bottom tray. The top webs rest on the PCB top surface between the
+screw and the board edge; the build fails if a web would reach a switch housing or a capacitor, and
+the spacer is cut back around them.
 
 ## Known deviations from the injection-moulded EZ
 

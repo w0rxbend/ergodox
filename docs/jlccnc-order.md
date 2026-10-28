@@ -56,7 +56,7 @@ drawing lists them all.
 Threads per 2D drawing: 8x M2.5x0.45-6H (T1-T8) + 3x M3x0.5-6H (L1-L3), ALL RIGHT-HAND.
 The STEP models holes at tap-drill size. Left part is a mirror image, but threads stay RIGHT-HAND.
 T1 and T5 are BLIND under the key well (1.1 mm skin): do not break through.
-L1-L3: plain Ø10 bosses on the outer walls, 1.2 high, FLAT face (no teeth), M3 thread in each,
+L1-L3: plain Ø10 bosses on the outer walls, 2.7 high, FLAT face (no teeth), M3 thread in each,
 see sheet 2. Side operation: 4th axis, right-angle head or a setup per wall.
 Switch cutouts 14.00 +0.05/-0. Cosmetic: top face, key well, outer walls.
 Mask threads during anodizing, or re-tap afterwards.
@@ -64,7 +64,7 @@ Mask threads during anodizing, or re-tap afterwards.
 螺纹见2D图纸：8个 M2.5x0.45-6H（T1-T8）+ 3个 M3x0.5-6H（L1-L3），全部为右旋螺纹。
 STEP中螺纹孔按底孔直径建模。左侧零件为镜像件，但螺纹仍为右旋。
 T1、T5为盲孔，顶面仅剩1.1mm，不可打穿。
-L1-L3：侧壁上Ø10凸台，高1.2，端面为平面（无齿），各带M3螺纹，见图纸第2页。需侧面加工（第四轴、直角头或每个侧壁单独装夹）。
+L1-L3：侧壁上Ø10凸台，高2.7，端面为平面（无齿），各带M3螺纹，见图纸第2页。需侧面加工（第四轴、直角头或每个侧壁单独装夹）。
 开关孔 14.00 +0.05/0。外观面：顶面、键位槽、外侧壁。阳极氧化时请保护螺纹，或氧化后回攻。
 ```
 
@@ -98,13 +98,14 @@ Same anodize colour as the case parts.
 |---|---|
 | Thread direction? | All threads are right-hand (clockwise to tighten), on both the right and the left parts. |
 | The left part is mirrored. Should its threads be mirrored too? | No. Mirroring applies to the geometry only. All threads are standard right-hand. |
-| Thread depth? | See the table on sheet 1. M2.5 bezel holes: drill 6.0, at least 5.6 full thread. T1/T5: drill 3.9, at least 3.5 full thread, blind. M3: drill 5.2–6.0, at least depth − 0.5 full thread. Bottoming taps or thread-forming taps are fine. |
+| Thread depth? | See the table on sheet 1. M2.5 bezel holes: drill 6.0, at least 5.6 full thread. T1/T5: drill 3.9, at least 3.5 full thread, blind. M3: drill 6.7–7.5, at least depth − 0.5 full thread. Bottoming taps or thread-forming taps are fine. |
 | Holes T1/T5 are close to the top surface. | Intended. Leave 1.1 mm of skin and don't break through. A shallower thread (minimum 3.0) is acceptable if needed. |
-| Do the side bosses need teeth? | No. The bosses and the leg hub are flat by design. The leg is clamped by friction. Keep the bosses (Ø10, 1.2 high) and the M3 threads. |
+| Do the side bosses need teeth? | No. The bosses and the leg hub are flat by design. The leg is clamped by friction. Keep the bosses (Ø10, 2.7 high) and the M3 threads. |
 | Can the side bosses be dropped? | No. The leg bears on the boss face, clear of the wall. |
 | Switch-cutout corners are R0.5: is a smaller tool needed? | R0.5 is the maximum. If they prefer, dog-bone reliefs are acceptable; a dog-bone version can be supplied. |
 | The plate is thin (1.5 mm). | Expected. Support it while cutting. Flatness 0.2 over the part. |
-| Sharp internal corners in pockets? | All pocket corners are R ≥ 1 mm (Ø2 tool), except the switch cutouts (R0.5, Ø1 tool). |
+| Sharp internal corners in pockets? | All pocket corners are R ≥ 1 mm (Ø2 tool), except the switch cutouts (R0.5, Ø1 tool). The models already have the fillets your rule gives (R = depth/10, rounded up to 0.5): R1 where pads and webs meet the walls in the top parts, R0.5 in the bottom parts, R1 at the leg's arm-to-hub joint. Larger tool fillets are acceptable too. |
+| Gaps between bosses and walls are too small to machine. | Already fixed: every boss near a wall is joined to it by a solid web. |
 | Cosmetic surfaces? | Top: top face, key well, outer walls and bosses. Bottom: underside and outer walls. Inside surfaces may show tool marks. |
 | Anodizing threads? | Mask them, or re-tap after anodizing. The screws must turn by hand. |
 | Tolerances not given? | ISO 2768-m. The STEP model is the reference geometry. |

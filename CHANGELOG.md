@@ -5,6 +5,32 @@ with STL and STEP archives.
 
 ## [Unreleased]
 
+### Changed
+
+- Screw bosses near a wall are joined to it by a solid web, so no narrow slot is left between them.
+  JLCCNC could not machine those gaps. That is 6 bosses in each top shell (gap under 5 mm,
+  `WEB_GAP_TOP`) and the post at the thumb notch in each bottom tray (under 2 mm, `WEB_GAP_BOTTOM`).
+  The build checks that the webs clear the switch housings and the capacitors; the capacitor
+  pocket (right half, around the middle back screw) keeps its web, and the plate spacer is cut back
+  around them.
+- Tent-leg bosses stick out 2.7 mm from the wall (was 1.2, `LEG_BOSS_H`); the M3 tap depth grows by
+  the same 1.5 mm (`LEG_DEPTH` 7.5), so the thread in the wall is unchanged. Each half is now
+  195.9 mm wide over the bosses, and the leg arm clears the wall by 4.7 mm. The bosses get an R0.5
+  root fillet at the wall and an R0.3 round on the face rim (`LEG_BOSS_EDGE`).
+- Right top shell: the capacitor pocket now starts just in front of the middle back screw boss
+  (`pocket_y0`) instead of at the back wall, so the boss and the strip behind it are solid. The
+  pocket is 226 mm² (was 420) and still clears the capacitor by 1 mm.
+- Top shell: the relief pocket above the plate level is only kept where it is at least 6 mm wide
+  (`RELIEF_MIN_W`). The thin strips along the inner and front walls, the triangle at the thumb
+  junction and the front-right corner pocket are now solid; only the back strip (jacks, LEDs,
+  capacitor) keeps its headroom. Each top shell is now about 150 g.
+- Internal corners are modelled with the radius JLCCNC's cutters leave, R = depth / 10 rounded up
+  to 0.5 mm (`corner_r()`):
+  - R1 where the leg pads and boss webs meet the wall in the top shell;
+  - R0.5 where the post web meets the wall in the bottom tray;
+  - R1 in the jack notch corners and at the leg's arm-to-hub joint.
+  The other pocket contours already met the rule. Order guide answers updated.
+
 ## [0.6.0] - 2026-10-28
 
 ### Changed

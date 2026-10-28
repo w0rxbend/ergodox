@@ -27,8 +27,8 @@ import sys
 
 from build123d import (
     Align, Axis, Box, Circle, Cylinder, Face, Kind, Location, Mode, Plane, Pos,
-    Rectangle, RectangleRounded, Rot, Sketch, Solid, Vector, chamfer, export_step,
-    export_stl, extrude, fillet, offset, Polyline, make_face, Compound, Sphere,
+    Rectangle, RectangleRounded, Rot, Sketch, Solid, Vector, Vertex, chamfer, export_step,
+    export_stl, extrude, fillet, offset, Polyline, make_face, Compound, Sphere, Torus,
 )
 
 # --------------------------------------------------------------------------
@@ -81,6 +81,15 @@ TAP_DEPTH = 6.0          # thread depth into top bosses (bezel area)
 TAP_DEPTH_PLATE = 3.9    # for bosses under the plate (leaves ~1.1 mm skin)
 BOSS_D = 6.5
 POST_D = 6.5
+# A boss or post closer to the wall than this is joined to it by a web as wide as the boss, so
+# no narrow, deep slot is left between them (JLCCNC could not mill those). Top: the gap is
+# up to 6 mm deep, bottom: 4 mm.
+WEB_GAP_TOP = 5.0
+WEB_GAP_BOTTOM = 2.0
+# Relief pocket above the plate level (outside the key well) is only kept where it is at least
+# this wide: thin strips along the walls are hard to mill and save almost no weight. In
+# practice this leaves the back strip, where the jacks need the headroom.
+RELIEF_MIN_W = 6.0
 
 # Tent / tilt legs: reuses the stock EZ spring thumbscrews (M3). The stock bracket is not
 # used: the M3 thread is tapped into the wall and a pad behind it, with a Ø10 boss on the
@@ -90,10 +99,11 @@ POST_D = 6.5
 DETENT_TEETH = False
 LEG_Z = 12.0             # thread axis; the Ø10 boss then spans Z 7.0-17.0 on the top part
 LEG_TAP_D = 2.5          # M3 tap drill
-LEG_DEPTH = 6.0          # max drill depth from the boss face
+LEG_DEPTH = 7.5          # max drill depth from the boss face (4.8 past the wall face)
 LEG_PAD = (10.0, 6.0)    # pad (along wall, into case) behind the wall
 LEG_BOSS_D = 10.0        # detent boss on the outer wall face
-LEG_BOSS_H = 1.2         # boss height above the wall face (bearing face / tooth tips)
+LEG_BOSS_H = 2.7         # boss height above the wall face (bearing face / tooth tips)
+LEG_BOSS_EDGE = 0.3      # round on the rim of the flat bearing face
 LEG_TEETH = 36           # radial detent teeth if DETENT_TEETH (stock: 10 deg steps)
 LEG_TOOTH_R0 = 2.2       # teeth run from this radius to the boss edge
 LEG_TOOTH_ANGLE = 90.0   # included angle of the V teeth
@@ -179,9 +189,11 @@ RESET_D = 1.5
 # Each pocket fills the back strip between pocket_x, from the back wall to the key-well wall,
 # keeps the PCB screw bosses, and leaves CAP_SKIN under the cosmetic top face.
 CAPS = {
-    True: dict(pos=(121.15, 45.1), size=(11.1, 7.0), pocket_x=(109.0, 131.0)),     # right half
+    True: dict(pos=(121.15, 45.1), size=(11.1, 7.0), pocket_x=(109.0, 131.0),      # right half
+               pocket_y0=40.4),  # back edge just in front of the middle back screw boss
     False: dict(pos=(146.6, 39.35), size=(11.6, 6.1), pocket_x=(124.5, 167.0)),    # left half
-}                        # size: length along the back wall (body + leads) x body diameter
+}                        # size: length along the back wall (body + leads) x body diameter;
+                         # pocket_y0 (optional): back edge of the pocket, else the back wall
 CAP_H = 6.5              # max part height above the PCB top (lying body + margin)
 CAP_CLEAR = 1.0          # min clearance around it inside the pocket
 CAP_SKIN = 1.5
@@ -369,6 +381,73 @@ def boss_radius(sx, sy) -> float:
     return max(min(BOSS_D / 2, d - 0.3), TAP_D / 2 + 1.0)
 
 
+def boss_web(sx, sy, inner: Face, max_gap: float):
+    """Web (part frame face) joining the boss at (sx, sy) to the nearest point of the wall
+    when the gap between them is below max_gap, else None. As wide as the boss, 0.5 into
+    the wall, clipped to the case outline."""
+    c = Vector(*P(sx, sy))
+    r = boss_radius(sx, sy)
+    wall = inner.outer_wire()
+    d = wall.distance_to(Vertex(c.X, c.Y, 0))
+    if d - r >= max_gap:
+        return None
+    # nearest wall point: sample the wire
+    n = 2000
+    pts = [wall.position_at(i / n) for i in range(n)]
+    w = min(pts, key=lambda v: (v - c).length)
+    u = (w - c).normalized()
+    length = (w - c).length + 0.5
+    ang = math.degrees(math.atan2(u.Y, u.X))
+    web = Pos(c.X, c.Y) * Rot(0, 0, ang) * Pos(length / 2, 0) * Rectangle(length, 2 * r)
+    return ((Sketch() + web) & outline_face()).faces()[0]
+
+
+def corner_r(depth: float) -> float:
+    """Internal corner radius the shop's cutter leaves at this depth (JLCCNC rule: depth / 10,
+    rounded up to a multiple of 0.5, at least 0.5)."""
+    return max(0.5, math.ceil(depth / 10 / 0.5 - 1e-9) * 0.5)
+
+
+def wall_fillets(inner: Face, feature, r: float) -> list[Face]:
+    """Material that rounds the internal corners where a feature (2D footprint, part frame)
+    meets the wall to radius r: the cavity minus its opening by r, kept next to the feature."""
+    # work on the cavity next to the feature only (more robust 2D offsets); corners made by
+    # this clipping lie 4r out and are dropped by the final 2r window
+    cavity = (Sketch() + inner) & offset(feature, 4 * r, kind=Kind.ARC)
+    cavity -= feature
+    # opening = erode, then dilate with round corners. OCC's 2D offset fails on some
+    # contours, so the erosion falls back to sharp joins, which give the same result at the
+    # pocket corners being filled.
+    opened = Sketch()
+    for f in cavity.faces():
+        core = None
+        for kind in (Kind.ARC, Kind.INTERSECTION):
+            try:
+                core = offset(f, -r, kind=kind).faces()
+                break
+            except RuntimeError:
+                pass
+        if core is None:
+            if f.area > 4 * r * r:
+                sys.exit(f"wall_fillets: 2D offset failed on a {f.area:.1f} mm2 cavity face")
+            continue             # a sliver narrower than 2r: fill it all
+        for g in core:
+            opened += offset(g, r, kind=Kind.ARC)
+    fill = cavity - opened
+    fill &= offset(feature, 2 * r, kind=Kind.ARC)
+    return [f for f in fill.faces() if f.area > 1e-4]
+
+
+def boss_webs(inner: Face, max_gap: float) -> dict:
+    """{(sx, sy): web face} for every screw boss that needs a web."""
+    out = {}
+    for sx, sy in SCREWS:
+        f = boss_web(sx, sy, inner, max_gap)
+        if f is not None:
+            out[(sx, sy)] = f
+    return out
+
+
 def screw_under_plate(sx, sy, well: list[Face]) -> bool:
     return any(f.is_inside(Vector(*P(sx, sy))) for f in well)
 
@@ -455,6 +534,14 @@ def detent_grooves(r_out: float, z_tip: float) -> list:
     return grooves
 
 
+def boss_root_fillet() -> Solid:
+    """Concave fillet ring where the leg boss meets the wall, in the boss frame (axis +Z, wall
+    face at Z = 0), radius from the cutter rule for the boss height. Reaches 1 mm into the wall."""
+    r1, rf = LEG_BOSS_D / 2, corner_r(LEG_BOSS_H)
+    ring = Pos(0, 0, -1) * Cylinder(r1 + rf, rf + 1, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return ring - Pos(0, 0, rf) * Torus(r1 + rf, rf)
+
+
 def detent_boss() -> Solid:
     """Leg boss in a local frame: axis along +Z, wall face at Z = 0, bearing face at
     LEG_BOSS_H. Flat unless DETENT_TEETH; then V grooves with apexes on the axis, like the
@@ -463,7 +550,7 @@ def detent_boss() -> Solid:
     boss = Pos(0, 0, -WALL / 2) * Cylinder(r1, WALL / 2 + LEG_BOSS_H,
                                           align=(Align.CENTER, Align.CENTER, Align.MIN))
     if not DETENT_TEETH:
-        return boss
+        return fillet(boss.edges().group_by(Axis.Z)[-1], LEG_BOSS_EDGE)
     boss -= detent_grooves(r1 + 0.3, LEG_BOSS_H)
     # flat land inside the teeth at root depth, so the hub seats on the teeth only
     root = LEG_TOOTH_R0 * tooth_k()
@@ -474,17 +561,21 @@ def detent_boss() -> Solid:
 
 def cap_pocket(right: bool) -> Face:
     """Pocket outline (part frame, right-half coordinates) for one half: the back strip between
-    pocket_x, inside the wall and WALL / 2 + 0.5 away from the key well, around the PCB screw
-    bosses, convex corners rounded to the tool radius."""
+    pocket_x (and in front of pocket_y0), inside the wall and WALL / 2 + 0.5 away from the key
+    well, around the PCB screw bosses and their wall webs, convex corners rounded to the tool
+    radius."""
     cap = CAPS[right]
     inner = offset(outline_face(), -WALL, kind=Kind.ARC).faces()[0]
-    (xa, ya), (xb, yb) = P(cap["pocket_x"][0], CASE_Y_TOP - 5), P(cap["pocket_x"][1], CASE_Y_TOP + 40)
+    y0 = cap.get("pocket_y0", CASE_Y_TOP - 5)
+    (xa, ya), (xb, yb) = P(cap["pocket_x"][0], y0), P(cap["pocket_x"][1], CASE_Y_TOP + 40)
     s = Sketch() + inner
     s &= Pos((xa + xb) / 2, (ya + yb) / 2) * Rectangle(abs(xb - xa), abs(yb - ya))
     for wf in well_face(extra=WALL / 2 + 0.5):
         s -= wf
     for sx, sy in SCREWS:
         s -= Pos(*P(sx, sy)) * Circle(boss_radius(sx, sy))
+    for web in boss_webs(inner, WEB_GAP_TOP).values():     # keep the boss joined to the wall
+        s -= web
     s = offset(offset(s, -TOOL_R, kind=Kind.ARC), TOOL_R, kind=Kind.ARC)
     c = Vector(*P(*cap["pos"]))
     return next(f for f in s.faces() if f.is_inside(c))
@@ -500,6 +591,8 @@ def spacer_face() -> Sketch:
         s -= Pos(*P(kx, ky)) * Rot(0, 0, cad_rot(rot)) * RectangleRounded(SPACER_HOLE, SPACER_HOLE, TOOL_R)
     for sx, sy in SCREWS:
         s -= Pos(*P(sx, sy)) * Circle(boss_radius(sx, sy) + SPACER_CLEAR)
+    for web in boss_webs(offset(outline_face(), -WALL, kind=Kind.ARC).faces()[0], WEB_GAP_TOP).values():
+        s -= offset(web, SPACER_CLEAR, kind=Kind.ARC)
     for (px, py), (nx, ny) in leg_mounts():
         d = WALL + leg_pad_depth(px, py, nx, ny) + SPACER_CLEAR
         s -= _leg_frame(px, py, nx, ny, Pos(d / 2, 0) * Rectangle(d, LEG_PAD[0] + 2 * SPACER_CLEAR))
@@ -528,6 +621,29 @@ def spacer_check(spacer: Solid):
                 sys.exit(f"plate spacer covers the switch at ({kx:.1f},{ky:.1f})")
     print(f"  plate spacer: {SPACER_T} thick, Z {Z_PLATE_BOT - SPACER_T:.1f}-{Z_PLATE_BOT:.1f}, "
           f"{gap:.1f} mm above the PCB, {SPACER_HOLE} openings, {len(spacer.solids())} piece(s)")
+
+
+def web_check():
+    """Boss webs must stay clear of the switch housings and the capacitors (plus CAP_CLEAR)."""
+    for part, inset, gap in (("top", 0.0, WEB_GAP_TOP), ("bottom", BOTTOM_FRONT_INSET, WEB_GAP_BOTTOM)):
+        inner = offset(outline_face(inset), -WALL, kind=Kind.ARC).faces()[0]
+        for (sx, sy), web in boss_webs(inner, gap).items():
+            bb = web.bounding_box()
+            n = 30
+            for i in range(n + 1):
+                for j in range(n + 1):
+                    q = Vector(bb.min.X + (bb.max.X - bb.min.X) * i / n, bb.min.Y + (bb.max.Y - bb.min.Y) * j / n)
+                    if not web.is_inside(q):
+                        continue
+                    kx, ky = q.X + OX, OY - q.Y
+                    if _in_housing(kx, ky, 0.3):
+                        sys.exit(f"{part} web at screw ({sx:.1f},{sy:.1f}) hits a switch housing")
+                    if part == "top":
+                        for cap in CAPS.values():
+                            (cx, cy), (w, h) = cap["pos"], cap["size"]
+                            if abs(kx - cx) < w / 2 + CAP_CLEAR and abs(ky - cy) < h / 2 + CAP_CLEAR:
+                                sys.exit(f"top web at screw ({sx:.1f},{sy:.1f}) hits a capacitor")
+            print(f"  {part:6s} web: screw ({sx:6.1f},{sy:6.1f}) joined to the wall, {web.area:.0f} mm2")
 
 
 def cap_check():
@@ -571,6 +687,24 @@ def leg_check():
               f"  M3 drill depth {leg_hole_depth(px, py, nx, ny, well):4.2f} mm from boss face")
 
 
+def relief_faces() -> list[Face]:
+    """Relief pocket outline: inside the wall, WALL / 2 + 0.5 away from the key well, minus
+    every part narrower than RELIEF_MIN_W (morphological opening)."""
+    relief = Sketch() + offset(outline_face(), -WALL, kind=Kind.ARC).faces()[0]
+    for wf in well_face(extra=WALL / 2 + 0.5):
+        relief -= wf
+    r = RELIEF_MIN_W / 2
+    out = []
+    for f in relief.faces():
+        try:
+            core = offset(f, -r, kind=Kind.ARC)
+        except RuntimeError:     # narrower than RELIEF_MIN_W everywhere
+            continue
+        for g in core.faces():
+            out += offset(g, r, kind=Kind.ARC).faces()
+    return out
+
+
 def build_top(right: bool) -> Solid:
     outline = outline_face()
     inner = offset(outline, -WALL, kind=Kind.ARC).faces()[0]
@@ -583,12 +717,8 @@ def build_top(right: bool) -> Solid:
     # main cavity below the plate
     body -= prism(inner, Z_SPLIT - 1, Z_PLATE_BOT)
     # component / weight-relief pocket above, kept away from the well
-    relief = Sketch() + inner
-    for wf in well_face(extra=WALL / 2 + 0.5):
-        relief -= wf
-    for f in relief.faces():
-        if f.area > 4:
-            body -= prism(f, Z_PLATE_BOT - 0.01, Z_POCKET_CEIL)
+    for f in relief_faces():
+        body -= prism(f, Z_PLATE_BOT - 0.01, Z_POCKET_CEIL)
     # key well
     for wf in well:
         body -= prism(wf, Z_PLATE_TOP, Z_TOP + 1)
@@ -598,7 +728,8 @@ def build_top(right: bool) -> Solid:
         if STABILIZERS and h == 2:
             body -= prism(stab_cuts(kx, ky, rot), Z_PLATE_BOT - 1, Z_PLATE_TOP + 0.01)
 
-    # PCB clamp bosses + tapped holes
+    # PCB clamp bosses + tapped holes; bosses near the wall are joined to it
+    webs = boss_webs(inner, WEB_GAP_TOP)
     for sx, sy in SCREWS:
         cx, cy = P(sx, sy)
         r = boss_radius(sx, sy)
@@ -606,21 +737,33 @@ def build_top(right: bool) -> Solid:
         ceil = Z_PLATE_BOT if under else Z_POCKET_CEIL
         body += Pos(cx, cy, Z_PCB_TOP) * Cylinder(r, ceil - Z_PCB_TOP + 0.01,
                                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
+        if (sx, sy) in webs:
+            body += prism(webs[(sx, sy)], Z_PCB_TOP, ceil + 0.01)
+            for f in wall_fillets(inner, webs[(sx, sy)], corner_r(ceil - Z_SPLIT)):
+                body += prism(f, Z_PCB_TOP, ceil + 0.01)
         depth = TAP_DEPTH_PLATE if under else TAP_DEPTH
         body -= Pos(cx, cy, Z_PCB_TOP - 0.01) * Cylinder(TAP_D / 2, depth,
                                                        align=(Align.CENTER, Align.CENTER, Align.MIN))
 
     # tent legs: pad behind the wall, Ø10 boss outside (flat or toothed), tapped M3 hole
     boss = detent_boss()
+    root = boss_root_fillet()
+    band = prism(offset(outline, 2.0, kind=Kind.ARC), Z_SPLIT, Z_TOP - TOP_EDGE_FILLET)
     for (px, py), (nx, ny) in leg_mounts():
         pad_d = leg_pad_depth(px, py, nx, ny)
         pad = Pos(0, 0, Z_PCB_TOP + 0.4) * Box(WALL + pad_d, LEG_PAD[0], Z_POCKET_CEIL - Z_PCB_TOP - 0.4,
                                                align=(Align.MIN, Align.CENTER, Align.MIN))
         pad = _leg_frame(px, py, nx, ny, pad) & prism(outline, Z_SPLIT, Z_TOP)
+        foot = _leg_frame(px, py, nx, ny, Pos((WALL + pad_d) / 2, 0) * Rectangle(WALL + pad_d, LEG_PAD[0]))
+        for f in wall_fillets(inner, foot, corner_r(Z_POCKET_CEIL - Z_SPLIT)):
+            pad += prism(f, Z_PCB_TOP + 0.4, Z_POCKET_CEIL)
         for wf in well:
             pad -= prism(wf, Z_PLATE_TOP, Z_TOP + 1)
         body += pad
         body += _leg_frame(px, py, nx, ny, Pos(0, 0, LEG_Z) * Rot(0, -90, 0) * boss)
+        # root fillet, kept on the flat part of the wall (above the parting plane, below the
+        # rounded top edge)
+        body += _leg_frame(px, py, nx, ny, Pos(0, 0, LEG_Z) * Rot(0, -90, 0) * root) & band
         depth = leg_hole_depth(px, py, nx, ny, well)
         body -= _leg_frame(px, py, nx, ny, Pos(-LEG_BOSS_H - 0.01, 0, LEG_Z) * Rot(0, 90, 0) * Cylinder(
             LEG_TAP_D / 2, depth + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN)))
@@ -633,8 +776,8 @@ def build_top(right: bool) -> Solid:
     jacks = [TRRS] + ([USB] if right else [])
     for jx, jw, jz in jacks:
         cx = P(jx, 0)[0]
-        body -= Pos(cx, yb, Z_SPLIT - 1) * Box(jw, WALL * 4, jz - Z_SPLIT + 1,
-                                                align=(Align.CENTER, Align.CENTER, Align.MIN))
+        notch = Pos(cx, yb) * RectangleRounded(jw, WALL * 4, corner_r(jz - Z_SPLIT + 1))
+        body -= prism(notch, Z_SPLIT - 1, jz)
     if right:
         for lx, ly in LEDS:
             cx, cy = P(lx, ly)
@@ -653,11 +796,16 @@ def build_bottom(right: bool) -> Solid:
     body = fillet(body.edges().group_by(Axis.Z)[0], 1.0)
     body = chamfer(body.edges().group_by(Axis.Z)[-1], SEAM_CHAMFER)
     body -= prism(inner, FLOOR_T, Z_SPLIT + 1)
+    webs = boss_webs(inner, WEB_GAP_BOTTOM)
     for sx, sy in SCREWS:
         cx, cy = P(sx, sy)
         r = boss_radius(sx, sy)
         body += Pos(cx, cy, FLOOR_T - 0.01) * Cylinder(
             r, Z_SPLIT - FLOOR_T + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        if (sx, sy) in webs:
+            body += prism(webs[(sx, sy)], FLOOR_T - 0.01, Z_SPLIT)
+            for f in wall_fillets(inner, webs[(sx, sy)], corner_r(Z_SPLIT - FLOOR_T)):
+                body += prism(f, FLOOR_T - 0.01, Z_SPLIT)
         body -= Pos(cx, cy, -1) * Cylinder(SCREW_CLEAR_D / 2, Z_SPLIT + 2,
                                           align=(Align.CENTER, Align.CENTER, Align.MIN))
         # 90 deg countersink
@@ -693,6 +841,11 @@ def build_leg() -> Solid:
         LEG_SPIGOT[0] / 2, LEG_SPIGOT[1], align=(Align.CENTER, Align.CENTER, Align.MIN))
     spigot = chamfer(spigot.edges().sort_by(Axis.Y)[-1], 0.4)
     leg = hub + arm + neck + spigot
+    # round the arm-to-hub joint to the cutter radius (edges on the hub cylinder, arm side)
+    joint = [e for e in leg.edges()
+             if all(abs(math.hypot(q.X, q.Y) - r) < 0.02 and q.Y > 0.5
+                    for q in (e.position_at(s) for s in (0, 0.25, 0.5, 0.75, 1)))]
+    leg = fillet(joint, corner_r(LEG_ARM_T))
     leg -= Cylinder(LEG_HOLE_D / 2, 3 * LEG_HUB_L)
     leg -= Pos(0, 0, LEG_HUB_L - LEG_CBORE[1]) * Cylinder(
         LEG_CBORE[0] / 2, LEG_HUB_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -771,6 +924,7 @@ def main(outdir: str):
         print(f"  #{i} ({sx:7.2f},{sy:7.2f}) clearance {w:5.2f}  boss r {boss_radius(sx, sy):.2f}")
     leg_check()
     cap_check()
+    web_check()
     export_fitcheck_dxf(os.path.join(outdir, "ergodox_right_fitcheck.dxf"))
     parts = {}
     for side in ("right", "left"):
@@ -783,7 +937,7 @@ def main(outdir: str):
         parts[f"{side}_bottom"] = bot
     for name, s in parts.items():
         export_step(s, os.path.join(outdir, f"ergodox_{name}.step"))
-        export_stl(s, os.path.join(outdir, f"ergodox_{name}.stl"), tolerance=0.02)
+        export_stl(s, os.path.join(outdir, f"ergodox_{name}.stl"), tolerance=0.02, angular_tolerance=0.3)
         bb = s.bounding_box()
         print(f"{name:13s} vol {s.volume/1000:7.1f} cm3  mass(6061) {s.volume*2.70e-3:6.0f} g  "
               f"bbox {bb.size.X:.1f} x {bb.size.Y:.1f} x {bb.size.Z:.1f}  valid={s.is_valid}  solids={len(s.solids())}")

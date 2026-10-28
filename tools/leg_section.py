@@ -21,6 +21,6 @@ for name, col, fill in (("right_assembly_with_legs", "#d08040", False),
 for z, lab in ((7.0, "parting plane"), (8.6, "PCB top"), (12.0, "M3 / pivot axis"), (13.6, "plate top")):
     ax.axhline(z, color="r", lw=0.5, ls="--")
     ax.text(0.01, z + 0.2, lab, color="r", fontsize=7, transform=ax.get_yaxis_transform())
-ax.set_xlim(66, 92); ax.set_ylim(-42, 19); ax.set_aspect("equal"); ax.grid(alpha=0.3)
+ax.set_xlim(66, 96); ax.set_ylim(-42, 19); ax.set_aspect("equal"); ax.grid(alpha=0.3)
 ax.set_title("Outer tent leg: M3 tapped pad + Ø10 boss (orange = leg)", fontsize=8)
 plt.tight_layout(); plt.savefig(sys.argv[2])

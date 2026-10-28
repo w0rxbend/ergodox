@@ -33,9 +33,9 @@ coordinates, about ±1 mm):
 | Half | Capacitor | Pocket |
 |---|---|---|
 | Left | above the 3rd column from the outer edge, centre (146.6, 39.35), 11.6 × 6.1 incl. leads | x 124.5–167.0, about 910 mm² |
-| Right | just inward of the screw at (118.2, 37.1), centre (121.15, 45.1), 11.1 × 7.0 incl. leads | x 109–131 around the screw boss, about 420 mm² |
+| Right | just inward of the screw at (118.2, 37.1), centre (121.15, 45.1), 11.1 × 7.0 incl. leads | x 109–131, y 40.4–51.7 (in front of the screw boss), about 226 mm² |
 
-Each pocket runs from the back wall to 2 mm short of the key well. It reaches 7.5 mm above the PCB and
+Each pocket runs to 2 mm short of the key well: the left one from the back wall, the right one from just in front of the screw boss. It reaches 7.5 mm above the PCB and
 leaves 1.5 mm under the top face (`CAP_SKIN`).
 
 - On the paper print (right half), the rectangle on layer `FEATURES` next to the middle back screw must
@@ -76,6 +76,7 @@ Print the STL files from the `-stl.zip` release archive in PLA or PETG, at 0.2 m
 Build up the keyboard in the printed case:
 - the switches should click into the plate,
 - the screws should line up with the PCB holes,
+- nothing on the PCB top should sit under the webs that join the six edge bosses to the wall (the strip between each screw and the board edge),
 - the cables should plug in,
 - the capacitor should sit in its pocket without touching,
 - the legs should screw in and hold their angle on the bosses (tap M3 in the print, or use M3 heat-set inserts). Print `ergodox_leg.stl` (PETG, bearing face down) and `ergodox_leg_cap.stl` (TPU) and try them with the stock thumbscrew.

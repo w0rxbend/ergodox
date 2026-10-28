@@ -63,8 +63,8 @@ STL files from the latest `main` build. You can:
 
 | | |
 |---|---|
-| Size per half | 194.4 × 168.0 × 17.6 mm (including the leg bosses) |
-| Mass per half (6061-T6) | ≈ 357 g (top 144 g + bottom 213 g), plus the plate spacer |
+| Size per half | 195.9 × 168.0 × 17.6 mm (including the leg bosses) |
+| Mass per half (6061-T6) | ≈ 366 g (top 153 g + bottom 213 g), plus the plate spacer |
 | Fasteners per half | 6 × M2.5×14 + 2 × M2.5×12 countersunk (ISO 10642) |
 | Feet | 4 × Ø10 mm rubber bumpers in 0.6 mm recesses |
 | Tent/tilt legs | 3 custom legs (5 g, 6061) + TPU foot caps + stock M3 thumbscrews per half |
