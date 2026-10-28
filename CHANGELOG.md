@@ -7,6 +7,9 @@ with STL and STEP archives.
 
 ### Changed
 
+- The order archive is now `ergodox-cnc-case-<version>-cnc-order.zip` (was `-jlccnc-order.zip`): the
+  STEP files, drawings and hole table suit any CNC service. The JLCCNC form settings stay in
+  `ORDER_NOTES.md`.
 - Screw bosses near a wall are joined to it by a solid web, so no narrow slot is left between them.
   JLCCNC could not machine those gaps. That is 6 bosses in each top shell (gap under 5 mm,
   `WEB_GAP_TOP`) and the post at the thumb notch in each bottom tray (under 2 mm, `WEB_GAP_BOTTOM`).

@@ -49,7 +49,7 @@ jobs:
           }
           stage "${name}-stl"  exports/*.stl exports/build-report.txt
           stage "${name}-step" exports/*.step exports/*.dxf exports/build-report.txt
-          stage "${name}-jlccnc-order" exports/order/*
+          stage "${name}-cnc-order" exports/order/*
           (cd dist && for d in */; do zip -qr "${d%/}.zip" "$d"; done)
           (cd dist && sha256sum *.zip > SHA256SUMS.txt)
           ls -l dist

@@ -74,7 +74,7 @@ STL files from the latest `main` build. You can:
 ```mermaid
 flowchart LR
     A["cad/ergodox_case.py<br/>(every dimension is a named constant)"] -->|just model| B["STEP · STL · DXF"]
-    B -->|just order| C["PDF drawings<br/>+ JLCCNC order package"]
+    B -->|just order| C["PDF drawings<br/>+ CNC order package"]
     B -->|just site| D["3D viewer<br/>(GitHub Pages)"]
     B --> E["3D-printed test fit"]
     E --> F["fit check against your PCB"]
@@ -92,10 +92,10 @@ Ready-made files are attached to every [GitHub release](../../releases):
 
 - `ergodox-cnc-case-<version>-stl.zip` contains the STL files (4 case parts, 2 plate spacers, the leg and its foot cap), for a 3D-printed test fit.
 - `ergodox-cnc-case-<version>-step.zip` contains the STEP files (case parts and leg) and `ergodox_right_fitcheck.dxf`, for CAM or a CNC shop.
-- `ergodox-cnc-case-<version>-jlccnc-order.zip` is a ready-to-upload order package: each STEP plus a PDF
+- `ergodox-cnc-case-<version>-cnc-order.zip` is a ready-to-upload order package for any CNC service: each STEP plus a PDF
   manufacturing drawing (threads, leg bosses, tolerances, finish) and a hole table. It holds the
   4 case parts and the leg; order the leg in **quantity 6**, one part for all positions. The TPU foot
-  cap is an STL to print yourself. [docs/jlccnc-order.md](docs/jlccnc-order.md) has every form setting,
+  cap is an STL to print yourself. [docs/jlccnc-order.md](docs/jlccnc-order.md) has the JLCCNC form settings,
   including the customs category: the case parts go under Cavity & Enclosure and the leg under
   Aluminum Alloy Bracket (HS 761699).
 

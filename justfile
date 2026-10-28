@@ -39,7 +39,7 @@ renders:
     {{python}} tools/leg_section.py {{exports}} {{renders}}/leg_section.png
     {{python}} tools/overlay.py {{photo}} {{renders}}/overlay_on_photo.png
 
-# PDF drawings + JLCCNC order package in exports/order (needs exports)
+# PDF drawings + CNC order package in exports/order (needs exports)
 order:
     rm -rf {{exports}}/order
     {{python}} cad/drawings.py {{exports}} {{exports}}/order {{quote(version)}}

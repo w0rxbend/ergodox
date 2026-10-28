@@ -5,7 +5,7 @@ work for any other CNC service.
 
 ## The order package
 
-Download `ergodox-cnc-case-<version>-jlccnc-order.zip` from the [latest release](https://github.com/w0rxbend/ergodox/releases/latest),
+Download `ergodox-cnc-case-<version>-cnc-order.zip` from the [latest release](https://github.com/w0rxbend/ergodox/releases/latest),
 or build it with `just order`. It contains:
 
 | File | Upload as | Purpose |
